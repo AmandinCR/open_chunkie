@@ -96,7 +96,6 @@ function [sysmat,varargout] = chunkermat(chnkobj,kern,opts,ilist)
 % opts.sing provides a default value for singularities if not 
 % defined for kernels
 
-
 % Flag for determining whether input object is a chunkergraph
 icgrph = 0;
 
@@ -152,6 +151,7 @@ end
 if isfield(opts,'nonsmoothonly')
     nonsmoothonly = opts.nonsmoothonly;
 end
+
 if isfield(opts,'corrections')
     corrections = opts.corrections;
 end
@@ -195,9 +195,6 @@ for i=1:nchunkers
     targinfo = [];
    	targinfo.r = chnkrs(i).r(:,2); targinfo.d = chnkrs(i).d(:,2); 
    	targinfo.d2 = chnkrs(i).d2(:,2); targinfo.n = chnkrs(i).n(:,2);
-    if ~isempty(chnkrs(i).data)
-	    targinfo.data = chnkrs(i).data(:, 2);
-    end
     lchunks(i) = chnkrs(i).npt;
     
     for j=1:nchunkers
@@ -207,9 +204,6 @@ for i=1:nchunkers
         srcinfo = []; 
         srcinfo.r = chnkrs(j).r(:,1); srcinfo.d = chnkrs(j).d(:,1); 
         srcinfo.d2 = chnkrs(j).d2(:,1); srcinfo.n = chnkrs(j).n(:,1);
-        if ~isempty(chnkrs(j).data)
-	        srcinfo.data = chnkrs(j).data(:, 1);
-        end
 
         if (size(kern) == 1)
             ftemp = kern.eval(srcinfo,targinfo);
@@ -359,7 +353,6 @@ for i=1:nchunkers
     
     
     % call requested routine
-
     if strcmpi(quad,'ggq')
         if strcmpi(singi,'smooth')
             %TODO: make a reasonable method for smooth with removable
@@ -404,12 +397,18 @@ for i=1:nchunkers
         else
             sysmat_tmp = chnk.quadggq.buildmat(chnkr,ftmp,opdims,type,auxquads,jlist);
         end
-
+% added by Shidong to solve the Helmholtz open surface problem 11/25/2024
+	npts=size(sysmat_tmp,1);
+	sysmat_tmp(1:2:end,1:2:end)=-eye(npts/2);
     elseif strcmpi(quad,'native')
 
         if nonsmoothonly
             sysmat_tmp = sparse(chnkr.npt,chnkr.npt);
         else
+            if (quadorder ~= chnkr.k)
+                warning(['native rule: quadorder', ... 
+                    ' must equal chunker order (%d)'],chnkr.k)
+            end
             sysmat_tmp = chnk.quadnative.buildmat(chnkr,ftmp,opdims);
         end
     else
@@ -422,9 +421,7 @@ for i=1:nchunkers
 
         % mark off the near and self interactions
         for ich = 1:chnkr.nch
-	    jlist = [ich,chnkr.adj(1,ich),chnkr.adj(2,ich)];
-	    jlist = jlist(jlist > 0);
-            for jch = jlist
+            for jch = [ich,chnkr.adj(1,ich),chnkr.adj(2,ich)]
                 flag((jch - 1)*chnkr.k+(1:chnkr.k), ich) = 0;
             end
         end
@@ -518,6 +515,7 @@ if(icgrph && isrcip)
             sbclmat,sbcrmat,lvmat,rvmat,u,optsrcip);
        
         sysmat_tmp = inv(R) - eye(2*ngl*nedge*ndim);
+
         if (~nonsmoothonly)
             
             sysmat(starind,starind) = sysmat_tmp;
@@ -624,7 +622,6 @@ end
 
 targs = chnkrt.r(:,:); targn = chnkrt.n(:,:); 
 targd = chnkrt.d(:,:); targd2 = chnkrt.d2(:,:);
-targdata = chnkrt.data(:,:);
 
 [~,nt] = size(targs);
 
@@ -647,7 +644,6 @@ r = chnkr.r;
 d = chnkr.d;
 n = chnkr.n;
 d2 = chnkr.d2;
-data = chnkr.data;
 
 wtss = chnkr.wts;
 
@@ -656,26 +652,14 @@ for i = 1:nch
     jmatend = i*k*opdims(2);
                     
     [ji] = find(flag(:,i));
-    if ~isempty(targdata)
-        mat1 =  chnk.adapgausswts(r,d,n,d2,data,ct,bw,i,targs(:,ji), ...
-                targd(:,ji),targn(:,ji),targd2(:,ji),targdata(:,ji),...
-                kernev,opdims,t,w,opts);
-    else
-        mat1 =  chnk.adapgausswts(r,d,n,d2,data,ct,bw,i,targs(:,ji), ...
-                targd(:,ji),targn(:,ji),targd2(:,ji),[],...
-                kernev,opdims,t,w,opts);
-    end            
+    mat1 =  chnk.adapgausswts(r,d,n,d2,ct,bw,i,targs(:,ji), ...
+                targd(:,ji),targn(:,ji),targd2(:,ji),kernev,opdims,t,w,opts);
+            
     if corrections
         targinfo = []; targinfo.r = targs(:,ji); targinfo.d = targd(:,ji);
         targinfo.n = targn(:,ji); targinfo.d2 = targd2(:,ji);
-        if ~isempty(targdata)
-            targinfo.data = targdata(:,ji);
-        end
         srcinfo = []; srcinfo.r = r(:,:,i); srcinfo.d = d(:,:,i); 
         srcinfo.n = n(:,:,i); srcinfo.d2 = d2(:,:,i);
-        if ~isempty(data)
-            srcinfo.data = data(:,:,i);
-        end
         wtsi = wtss(:,i); wtsi = repmat(wtsi(:).',opdims(2),1);
         mat1 = mat1 - kernev(srcinfo,targinfo).*(wtsi(:).');
     end

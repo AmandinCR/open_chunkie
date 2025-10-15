@@ -258,8 +258,9 @@ for level=1:nsub
 %
     MAT = eye(nsys) + MAT;
     if level==1    %  Dumb and lazy initializer for R, for now
-  %R=eye(nR); 
-        R = inv(MAT(starL,starL));
+%        R = inv(MAT(starL,starL));
+% changed by Shidong to solve the Holmholtz open surface problem 11/25/2024
+      R = chnk.rcip.myinv(MAT(starL,starL));
         if savedeep
             rcipsav.R{1} = R;
         end
