@@ -1,4 +1,4 @@
-function [val, grad] = green_single_mode(src, targ, origin, mode)
+function [val, grad] = green_0th_mode(src, targ, origin)
 %
 % CHNK.AXISSYMHELM2D.GREEN evaluate the Laplace green's function
 % for the given sources and targets. 
@@ -24,26 +24,13 @@ z  = repmat(targ(2,:).',1,ns);
 zp = repmat(src(2,:),nt,1);
 dz = z-zp; % z - z'
 
-%{
-gs = zeros(mode+1,size(r,1),size(r,2));
-gdrs = zeros(mode+1,size(r,1),size(r,2));
-gdrps = zeros(mode+1,size(r,1),size(r,2));
-gdzs = zeros(mode+1,size(r,1),size(r,2));
-for i=1:size(r,1)
-    for j=1:size(r,2)
-        [gs(:,i,j),gdzs(:,i,j),gdrs(:,i,j),gdrps(:,i,j)] = chnk.axissymlap2d.g0funcall(r(i,j),rp(i,j),dr(i,j),z(i,j),zp(i,j),dz(i,j),mode);
-    end
-end
-%}
-[gs,gdzs,gdrs,gdrps] = chnk.axissymlap2d.g0funcall_vec(r,rp,dr,z,zp,dz,mode,30);
+[gs,gdzs,gdrs,gdrps] = chnk.axissymlap2d.gfunc(r,rp,dr,z,zp,dz);
 
-val = gs(mode,:,:);
-val = reshape(val, [nt, ns]);
-gtmp = zeros(nt, ns, 4);
-gtmp(:,:,1) = gdrs(mode,:,:);
-gtmp(:,:,2) = gdrps(mode,:,:);
-gtmp(:,:,3) = gdzs(mode,:,:);
-gtmp(:,:,4) = -gdzs(mode,:,:);
-grad = gtmp;
+val = gs;
+grad = zeros(nt, ns, 4);
+grad(:,:,1) = gdrs;
+grad(:,:,2) = gdrps;
+grad(:,:,3) = gdzs;
+grad(:,:,4) = -gdzs;
 
 end

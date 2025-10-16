@@ -1,4 +1,4 @@
-function submat = kern_single_mode(srcinfo, targinfo, origin, type, mode)
+function submat = kern_0th_mode(srcinfo, targinfo, origin, type)
 %CHNK.AXISSYMLAP2D.KERN axissymmetric Laplace layer potential kernels in 2D
 % 
 % Syntax: submat = chnk.axissymlap2d.kern(srcinfo,targinfo,type)
@@ -55,7 +55,7 @@ targ = targinfo.r;
 
 if strcmpi(type, 'd')
     srcnorm = srcinfo.n;
-    [~, grad] = green_single_mode(src, targ, origin, mode);
+    [~, grad] = green_0th_mode(src, targ, origin);
     nx = repmat(srcnorm(1,:), nt, 1);
     ny = repmat(srcnorm(2,:), nt, 1);
     % dr'*nr' + dz'*nz'
@@ -63,13 +63,13 @@ if strcmpi(type, 'd')
 end
 
 if strcmpi(type, 's')
-    [val, ~] = green_single_mode(src, targ, origin, mode);
+    [val, ~] = green_0th_mode(src, targ, origin);
     submat = val;
 end
 
 if strcmpi(type, 'sprime')
     targnorm = targinfo.n;
-    [~, grad] = green_single_mode(src, targ, origin, mode);
+    [~, grad] = green_0th_mode(src, targ, origin);
     nx = repmat((targnorm(1,:)).',1,ns);
     ny = repmat((targnorm(2,:)).',1,ns);
     % dr*nr + dz*nz
@@ -77,12 +77,12 @@ if strcmpi(type, 'sprime')
 end
 
 if strcmpi(type, 'sgradr')
-    [~, grad] = green_single_mode(src, targ, origin, mode);
+    [~, grad] = green_0th_mode(src, targ, origin);
     submat = grad(:,:,1);
 end
 
 if strcmpi(type, 'sgradz')
-    [~, grad] = green_single_mode(src, targ, origin, mode);
+    [~, grad] = green_0th_mode(src, targ, origin);
     submat = grad(:,:,3);
 end
 
@@ -90,7 +90,7 @@ if strcmpi(type, 'dgradr')
     h = 1e-200;
     targ_cr = targinfo;
     targ_cr.r(1,:) = targ_cr.r(1,:) + 1i*h;
-    D_cr = kern_single_mode(srcinfo, targ_cr, origin, 'd', mode);
+    D_cr = kern_0th_mode(srcinfo, targ_cr, origin, 'd');
     submat = imag(D_cr)/h;
 end
 
@@ -98,7 +98,7 @@ if strcmpi(type, 'dgradz')
     h = 1e-200;
     targ_cz = targinfo;
     targ_cz.r(2,:) = targ_cz.r(2,:) + 1i*h;
-    D_cz = kern_single_mode(srcinfo, targ_cz, origin, 'd', mode);
+    D_cz = kern_0th_mode(srcinfo, targ_cz, origin, 'd');
     submat = imag(D_cz)/h;
 end
 
@@ -108,13 +108,13 @@ if strcmpi(type, 'dprime')
     % r derivative
     targ_cr = targinfo;
     targ_cr.r(1,:) = targ_cr.r(1,:) + 1i*h;
-    D_cr = kern_single_mode(srcinfo, targ_cr, origin, 'd', mode);
+    D_cr = kern_0th_mode(srcinfo, targ_cr, origin, 'd');
     Dr = imag(D_cr)/h;
     
     % z derivative
     targ_cz = targinfo;
     targ_cz.r(2,:) = targ_cz.r(2,:) + 1i*h;
-    D_cz = kern_single_mode(srcinfo, targ_cz, origin, 'd', mode);
+    D_cz = kern_0th_mode(srcinfo, targ_cz, origin, 'd');
     Dz = imag(D_cz)/h;
 
     targnorm = targinfo.n;

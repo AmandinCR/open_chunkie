@@ -1,11 +1,11 @@
 %{
 - 3D Laplace's equation
 - Neumann boundary condition
-- Axisymmetric boundary
+- Torus boundary
 - Double layer potential representation
-- Non-vectorized chunkermat for modes
+- 0th mode (axisymmetric B.C.)
 
-Notes: This code should work with standalone new version of chunkie (given
+Notes: This code should work with standalone version of chunkie (given
 chnk.axissymlap2d code).
 %}
 
@@ -18,94 +18,70 @@ format long e;
 [chnkr,target,charge1,charge2] = get_torus_geometry();
 npts = chnkr.npt; % total number of points in discretization
 
-src = chnkr.r(:,:); % coordinates of points on the generating curve [2,64]
-n_src = chnkr.n(:,:); % normals of all the points on the generating curve [2,64]
-gl_wts = chnkr.wts(:); % Gauss-Legendre weights for src points [64,1]
+src = chnkr.r(:,:); % coordinates of points on the generating curve
+n_src = chnkr.n(:,:); % normals of all the points on the generating curve
 
 % plot geometry
 %plot(chnkr, 'b.');
-
-p_modes = 0; % number of positive fourier modes
-n_modes = 2*p_modes + 1; % number of fourier modes (must be odd for pos/0/neg)
-n_angles = n_modes; % number of angles/rotations
 strength = 100.0;
 
-%% discretization
 % compute f (boundary condition)
-f = zeros(n_angles,npts);
-for i=1:n_angles
-    % get polar/cartesian coordinates
-    theta = (i-1)*2*pi/n_angles;
-    
-    x=src(1,:).*cos(theta);
-    y=src(1,:).*sin(theta);
-    z=src(2,:);
-    pts=[x;y;z];
+x=src(1,:);
+y=src(1,:).*0;
+z=src(2,:);
+pts=[x;y;z];
 
-    n_x=n_src(1,:).*cos(theta);
-    n_y=n_src(1,:).*sin(theta);
-    n_z=n_src(2,:);
-    n_pts = [n_x;n_y;n_z];
+n_x=n_src(1,:);
+n_y=n_src(1,:).*0;
+n_z=n_src(2,:);
+n_pts = [n_x;n_y;n_z];
 
-    % set up neumann boundary data (with both charges)
-    rvec1 = pts - charge1;
-    r3_1 = vecnorm(rvec1).^3;
-    fn1 = sum(rvec1 .* n_pts, 1) ./ (4*pi*r3_1);
+% set up neumann boundary data
+% (one positive and one negative charge for compatibility condition)
+rvec1 = pts - charge1;
+r3_1 = vecnorm(rvec1).^3;
+fn1 = sum(rvec1 .* n_pts, 1) ./ (4*pi*r3_1);
 
-    rvec2 = pts - charge2;
-    r3_2 = vecnorm(rvec2).^3;
-    fn2 = -sum(rvec2 .* n_pts, 1) ./ (4*pi*r3_2);
+rvec2 = pts - charge2;
+r3_2 = vecnorm(rvec2).^3;
+fn2 = -sum(rvec2 .* n_pts, 1) ./ (4*pi*r3_2);
 
-    f(i,:) = strength*(fn1 + fn2);
-end
+f = strength*(fn1 + fn2);
 
-% Reorder FFT output to match
-modes = -p_modes:p_modes;
-f_fft = fft(f, n_modes, 1) / n_modes; % FFT (normalized)
-f_m = fftshift(f_fft, 1);  % puts negative freqs first
-
-%% solve
-% solve the integral equation for each fourier mode
+% quadrature options
 opts = [];
 opts.rcip = false;
 opts.forcesmooth = false;
 opts.l2scale = false;
 opts.sing = 'hs';
 
-% kern_all_modes returns both negative and positive modes
-sigma_m = zeros(n_modes,npts);
-for i=1:n_modes
-    G = @(s,t) kern_single_mode(s,t,[0,0],'dprime',abs(modes(i))+1);
-    A = chunkermat(chnkr, G, opts);
+% discretize integral equation
+% (chunkermat_normal is just the chunkermat that shidong has not edited for
+% RCIP)
+G = @(s,t) kern_0th_mode(s,t,[0,0],'dprime');
+A = 1/(4*pi^2) * chunkermat_normal(chnkr, G, opts);
 
-    % Build the system matrix
-    A_m = -1/(4*pi^2) * A;
+% enforce zero-mean constraint for compatability condition
+A = A + onesmat(chnkr);
 
-    % Enforce zero-mean constraint for compatability condition
-    A_m = A_m + onesmat(chnkr);
+% solve the linear system
+sigma = gmres(A, f', [], 1e-12, npts);
 
-    % Solve the linear system
-    sigma_m(i,:) = gmres(A_m, f_m(i,:)', [], 1e-12, npts);
-end
-
-%% solution building 2.0f
+% evaluation quadrature options
 opts.forcesmooth = false;
 opts.verb = false;
 opts.quadkgparams = {'RelTol', 1e-8, 'AbsTol', 1.0e-8};
 opts.sing = 'smooth';
 
-% target in cylindrical coordinates (r,theta,z)
-target_cyl = [sqrt(target(1)^2 + target(2)^2);atan2(target(2),target(1));target(3)];
-target_new = [target_cyl(1);target_cyl(3)];
+% target in cylindrical coordinates (r,z)
+target_cyl = [sqrt(target(1)^2 + target(2)^2);target(3)];
 
-u_sol = 0;
-for i=1:n_modes
-    G = @(s,t) kern_single_mode(s,t,[0,0],'d',abs(modes(i))+1);
-    G_eval = 1/(4*pi^2) * kernel(G);
+% define solution representation
+G = @(s,t) kern_0th_mode(s,t,[0,0],'d');
+G_eval = -1/(4*pi^2) * kernel(G);
 
-    u_m = chunkerkerneval(chnkr, G_eval, sigma_m(i,:), target_new, opts);
-    u_sol = u_sol + real(u_m * exp(1i * modes(i) * target_cyl(2)));
-end
+% evaluate at target
+u_sol = chunkerkerneval(chnkr, G_eval, sigma, target_cyl, opts);
 
 % compute the exact solution explicitly
 r1 = norm(target - charge1);

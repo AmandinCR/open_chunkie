@@ -1,3 +1,6 @@
+% Solve the Axi-symmetric boundary and dirichlet boundary condition 
+% Laplace problem (aka just the 0th mode modal greens function)
+
 clearvars; 
 close all;
 format long e;
@@ -22,8 +25,8 @@ origin = [0,0];
 % define kernels
 c = 2.0;
 Z = kernel.zeros();
-S = @(s,t) 1/(4*pi^2) * kern_single_mode(s,t,origin,'s',1);
-Dprime = @(s,t) 1/(4*pi^2) * kern_single_mode(s,t,origin,'dprime',1);
+S = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'s');
+Dprime = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'dprime');
 
 % discretize system
 K = [Z, c * kernel(S);
@@ -40,8 +43,8 @@ rhs(1:2:end) = f';
 sigma = gmres(Kmat, rhs, [], 1e-12, nsys);
 
 % compute error
-sigma_exact = 4./(pi*sqrt(1-src(1,:).^2))';
-error = sigma(2:2:end) - sigma_exact;
+sigma_exact = 2./(pi*sqrt(1-src(1,:).^2))';
+error = sigma(2:2:end) - sigma_exact
 
 
 
