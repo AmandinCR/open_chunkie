@@ -4,9 +4,6 @@
 - Torus boundary
 - Double layer potential representation
 - 0th mode (axisymmetric B.C.)
-
-Notes: This code should work with standalone version of chunkie (given
-chnk.axissymlap2d code).
 %}
 
 clearvars; 
@@ -78,7 +75,7 @@ target_cyl = [sqrt(target(1)^2 + target(2)^2);target(3)];
 
 % define solution representation
 G = @(s,t) kern_0th_mode(s,t,[0,0],'d');
-G_eval = -1/(4*pi^2) * kernel(G);
+G_eval = 1/(4*pi^2) * kernel(G);
 
 % evaluate at target
 u_sol = chunkerkerneval(chnkr, G_eval, sigma, target_cyl, opts);
@@ -98,7 +95,7 @@ err = norm(u_sol-u_true)
 function [chnkobj,target,charge1,charge2] = get_torus_geometry()
     pref = [];
     pref.k = 16; % points per chunk
-    pref.nchmax = 2;
+    %pref.nchmax = 2;
 
     cparams = [];
     cparams.eps = 1.0e-10;

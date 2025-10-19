@@ -4,9 +4,6 @@
 - Torus boundary
 - Single layer potential representation
 - 0th mode (axisymmetric B.C.)
-
-Notes: This code should work with standalone version of chunkie (given
-chnk.axissymlap2d code).
 %}
 
 clearvars; 
@@ -59,7 +56,7 @@ opts.sing = 'smooth';
 % (chunkermat_normal is just the chunkermat that shidong has not edited for
 % RCIP)
 G = @(s,t) kern_0th_mode(s,t,[0,0],'sprime');
-A = -1/(4*pi^2) * chunkermat_normal(chnkr, G, opts) - 0.5*eye(npts);
+A = 1/(4*pi^2) * chunkermat_normal(chnkr, G, opts) - 0.5*eye(npts);
 
 % enforce zero-mean constraint for compatability condition
 A = A + onesmat(chnkr);
@@ -98,7 +95,7 @@ err = norm(u_sol-u_true)
 function [chnkobj,target,charge1,charge2] = get_torus_geometry()
     pref = [];
     pref.k = 16; % points per chunk
-    pref.nchmax = 2;
+    %pref.nchmax = 2;
 
     cparams = [];
     cparams.eps = 1.0e-10;

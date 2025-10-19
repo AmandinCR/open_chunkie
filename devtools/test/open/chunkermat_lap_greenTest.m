@@ -64,17 +64,17 @@ opts.forcesmooth = false;
 origin = [0,0];
 
 % define kernels
-S = @(s,t) 1/(4*pi^2) * kern_single_mode(s,t,origin,'s',1);
-D = @(s,t) -1/(4*pi^2) * kern_single_mode(s,t,origin,'d',1);
-Sprime = @(s,t) -1/(4*pi^2) * kern_single_mode(s,t,origin,'sprime',1);
-Dprime = @(s,t) 1/(4*pi^2) * kern_single_mode(s,t,origin,'dprime',1);
+S = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'s');
+D = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'d');
+Sprime = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'sprime');
+Dprime = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'dprime');
 
 % convolve and evaluate at target
-Dmat = chunkermat(chnkr, D, opts);
-Smat = chunkermat(chnkr, S, opts);
-Sprimemat = chunkermat(chnkr, Sprime, opts);
+Dmat = chunkermat_normal(chnkr, D, opts);
+Smat = chunkermat_normal(chnkr, S, opts);
+Sprimemat = chunkermat_normal(chnkr, Sprime, opts);
 opts.sing = 'hs';
-Dprimemat = chunkermat(chnkr, Dprime, opts);
+Dprimemat = chunkermat_normal(chnkr, Dprime, opts);
 
 Du = Dmat*u';
 Sdudn = Smat*dudn';

@@ -13,7 +13,7 @@ src = chnkr.r(:,:); % coordinates of points on the generating curve [2,64]
 
 % setup quadrature options
 opts = [];
-%opts.sing = 'hs';
+opts.sing = 'hs';
 opts.rcip = true;
 opts.l2scale = false;
 opts.forcesmooth = false;
@@ -32,6 +32,9 @@ Dprime = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'dprime');
 K = [Z, c * kernel(S);
      c * kernel(Dprime), Z];
 K = kernel(K);
+
+% chunkermat_normal gives actual accuracy unlike the shidong chunkermat
+%Kmat = chunkermat_normal(chnkr, K, opts) + eye(nsys);
 Kmat = chunkermat(chnkr, K, opts) + eye(nsys);
 
 % compute boundary condition
@@ -44,7 +47,7 @@ sigma = gmres(Kmat, rhs, [], 1e-12, nsys);
 
 % compute error
 sigma_exact = 2./(pi*sqrt(1-src(1,:).^2))';
-error = sigma(2:2:end) - sigma_exact
+error = sigma(2:2:end) - sigma_exact;
 
 
 

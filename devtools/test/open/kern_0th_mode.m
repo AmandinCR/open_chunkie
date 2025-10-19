@@ -59,7 +59,7 @@ if strcmpi(type, 'd')
     nx = repmat(srcnorm(1,:), nt, 1);
     ny = repmat(srcnorm(2,:), nt, 1);
     % dr'*nr' + dz'*nz'
-    submat = (grad(:,:,2).*nx + grad(:,:,4).*ny);
+    submat = -(grad(:,:,2).*nx + grad(:,:,4).*ny);
 end
 
 if strcmpi(type, 's')
@@ -73,7 +73,7 @@ if strcmpi(type, 'sprime')
     nx = repmat((targnorm(1,:)).',1,ns);
     ny = repmat((targnorm(2,:)).',1,ns);
     % dr*nr + dz*nz
-    submat = (grad(:,:,1).*nx + grad(:,:,3).*ny);
+    submat = -(grad(:,:,1).*nx + grad(:,:,3).*ny);
 end
 
 if strcmpi(type, 'sgradr')
@@ -103,6 +103,7 @@ if strcmpi(type, 'dgradz')
 end
 
 if strcmpi(type, 'dprime')
+    %{
     h = 1e-200;
     
     % r derivative
@@ -120,7 +121,22 @@ if strcmpi(type, 'dprime')
     targnorm = targinfo.n;
     nx = repmat((targnorm(1,:)).',1,ns);
     ny = repmat((targnorm(2,:)).',1,ns);
-    submat = Dr.*nx + Dz.*ny;
+    submat = -(Dr.*nx + Dz.*ny);
+    %}
+    %
+    targnorm = targinfo.n;
+    srcnorm = srcinfo.n;
+    nxt = repmat((targnorm(1,:)).',1,ns);
+    nyt = repmat((targnorm(2,:)).',1,ns);
+    nxs = repmat(srcnorm(1,:), nt, 1);
+    nys = repmat(srcnorm(2,:), nt, 1);
+    
+    % hess = d_{rr'}, d_{zz'}, d_{rz'}, d_{r'z}
+    [~, ~, hess] = green_0th_mode(src, targ, origin);
+    submat = (hess(:,:,1).*nxt.*nxs + hess(:,:,3).*nys.*nxt ...
+        + hess(:,:,4).*nxs.*nyt + hess(:,:,2).*nyt.*nys);
+
+    %}
 end
 
 end
