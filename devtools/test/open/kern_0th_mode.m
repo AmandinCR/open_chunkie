@@ -103,27 +103,6 @@ if strcmpi(type, 'dgradz')
 end
 
 if strcmpi(type, 'dprime')
-    %{
-    h = 1e-200;
-    
-    % r derivative
-    targ_cr = targinfo;
-    targ_cr.r(1,:) = targ_cr.r(1,:) + 1i*h;
-    D_cr = kern_0th_mode(srcinfo, targ_cr, origin, 'd');
-    Dr = imag(D_cr)/h;
-    
-    % z derivative
-    targ_cz = targinfo;
-    targ_cz.r(2,:) = targ_cz.r(2,:) + 1i*h;
-    D_cz = kern_0th_mode(srcinfo, targ_cz, origin, 'd');
-    Dz = imag(D_cz)/h;
-
-    targnorm = targinfo.n;
-    nx = repmat((targnorm(1,:)).',1,ns);
-    ny = repmat((targnorm(2,:)).',1,ns);
-    submat = -(Dr.*nx + Dz.*ny);
-    %}
-    %
     targnorm = targinfo.n;
     srcnorm = srcinfo.n;
     nxt = repmat((targnorm(1,:)).',1,ns);
@@ -135,8 +114,6 @@ if strcmpi(type, 'dprime')
     [~, ~, hess] = green_0th_mode(src, targ, origin);
     submat = (hess(:,:,1).*nxt.*nxs + hess(:,:,3).*nys.*nxt ...
         + hess(:,:,4).*nxs.*nyt + hess(:,:,2).*nyt.*nys);
-
-    %}
 end
 
 end
