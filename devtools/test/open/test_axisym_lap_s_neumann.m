@@ -86,7 +86,7 @@ r2 = norm(target - charge2);
 u_true = strength*1/(4*pi)*(1/r1 - 1/r2);
 
 % compute the error
-err = norm(u_sol-u_true)
+err = norm(u_sol-u_true)/norm(u_true)
 
 
 
@@ -98,13 +98,13 @@ function [chnkobj,target,charge1,charge2] = get_torus_geometry()
     %pref.nchmax = 2;
 
     cparams = [];
-    cparams.eps = 1.0e-10;
+    %cparams.eps = 1.0e-10;
     %cparams.nover = 1;
     cparams.ifclosed = true;
     cparams.ta = 0;
     cparams.tb = 2*pi;
     cparams.maxchunklen = 2;
-    %cparams.nchmin = 16;
+    %cparams.nchmin = 8;
 
     ctr = [3 0];
     narms = 0;

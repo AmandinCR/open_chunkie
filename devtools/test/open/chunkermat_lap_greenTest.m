@@ -16,7 +16,7 @@ clearvars; close all; format long e;
 %addpaths_loc();
 
 %% geometry
-[chnkr] = get_sphere_geometry();
+[chnkr] = get_torus_geometry();
 npts = chnkr.npt;
 %plot(chnkr);
 
@@ -113,15 +113,16 @@ end
 function [chnkobj] = get_sphere_geometry()
     pref = [];
     pref.k = 16; % points per chunk
+    %pref.nchmax = 2;
 
     cparams = [];
     cparams.eps = 1.0e-10;
-    cparams.nover = 1;
+    %cparams.nover = 1;
     cparams.ifclosed = false;
     cparams.ta = -pi/2;
     cparams.tb = pi/2;
     cparams.maxchunklen = 2;
-    %cparams.nchmin = 8;
+    cparams.nchmin = 8;
 
     narms = 0;
     amp = 0.0;

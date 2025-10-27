@@ -13,13 +13,12 @@ src = chnkr.r(:,:); % coordinates of points on the generating curve [2,64]
 
 % setup quadrature options
 opts = [];
-opts.sing = 'hs';
 opts.rcip = true;
 opts.l2scale = false;
 opts.forcesmooth = false;
 opts.nsub_or_tol = 30;
 
-nsys = 2*npts;
+%nsys = 2*npts;
 origin = [0,0];
 
 % define kernels
@@ -28,26 +27,36 @@ Z = kernel.zeros();
 S = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'s');
 Dprime = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'dprime');
 
+opts.sing = 'log';
+Smat = chunkermat_normal(chnkr, S, opts);
+opts.sing = 'hs';
+Dpmat = chunkermat_normal(chnkr, Dprime, opts);
+Kmat = Smat*Dpmat;
+
 % discretize system
-K = [Z, c * kernel(S);
-     c * kernel(Dprime), Z];
-K = kernel(K);
+%K = [Z, c * kernel(S);
+%     c * kernel(Dprime), Z];
+%K = kernel(K);
 
 % chunkermat_normal gives actual accuracy unlike the shidong chunkermat
 %Kmat = chunkermat_normal(chnkr, K, opts) + eye(nsys);
-Kmat = chunkermat(chnkr, K, opts) + eye(nsys);
 
 % compute boundary condition
 f = ones(1,npts);
-rhs = zeros(nsys,1);
-rhs(1:2:end) = f';
+%rhs = zeros(nsys,1);
+%rhs(1:2:end) = f';
+rhs = f';
 
 % solve
-sigma = gmres(Kmat, rhs, [], 1e-12, nsys);
+sigma = gmres(Kmat, rhs, [], 1e-12, npts);
+
+sigma2 = gmres(Smat, rhs, [], 1e-12, npts);
 
 % compute error
-sigma_exact = 2./(pi*sqrt(1-src(1,:).^2))';
-error = sigma(2:2:end) - sigma_exact;
+sigma_exact = 4./(pi*sqrt(1-src(1,:).^2))';
+%error = sigma(2:2:end) - sigma_exact;
+error1 = sigma2 - sigma_exact;
+error2 = Dpmat*sigma - sigma_exact;
 
 
 
@@ -63,7 +72,7 @@ function [chnkobj,target,charge] = get_disk_geometry()
     %cparams.maxchunklen = 2;
     cparams.ta = 0;
     cparams.tb = 1;
-    %cparams.nchmin = 8;
+    cparams.nchmin = 8;
 
     verts = [0 1;0 0];
     edge2verts = [1;2];

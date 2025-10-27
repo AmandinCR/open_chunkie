@@ -20,7 +20,7 @@ n_src = chnkr.n(:,:); % normals of all the points on the generating curve
 
 % plot geometry
 %plot(chnkr, 'b.');
-strength = 100.0;
+strength = 1.0;
 
 % compute f (boundary condition)
 x=src(1,:);
@@ -47,7 +47,7 @@ f = strength*(fn1 + fn2);
 
 % quadrature options
 opts = [];
-opts.rcip = false;
+opts.rcip = true;
 opts.forcesmooth = false;
 opts.l2scale = false;
 opts.sing = 'hs';
@@ -86,7 +86,7 @@ r2 = norm(target - charge2);
 u_true = strength*1/(4*pi)*(1/r1 - 1/r2);
 
 % compute the error
-err = norm(u_sol-u_true)
+err = u_sol-u_true
 
 
 
@@ -103,8 +103,8 @@ function [chnkobj,target,charge1,charge2] = get_torus_geometry()
     cparams.ifclosed = true;
     cparams.ta = 0;
     cparams.tb = 2*pi;
-    cparams.maxchunklen = 2;
-    %cparams.nchmin = 16;
+    %cparams.maxchunklen = 2;
+    %cparams.nchmin = 8;
 
     ctr = [3 0];
     narms = 0;
