@@ -1,4 +1,5 @@
 
+
 %
 % verify that the modeal Green's functions for Laplace are working properly
 %
@@ -13,7 +14,7 @@ z = 0.5;
 zp = z-h;
 dz = h; % z - z'
 
-maxm = 5;
+maxm = 3;
 
 exact = zeros(maxm+1,1);
 exact_gdz = zeros(maxm+1,1);
@@ -81,14 +82,15 @@ end
 %
 % compare with routine for just zero mode
 %
-[gval, gdz, gdr, gdrp, gdrpr, gdzz, gdrz, gdrpz] = chnk.axissymlap2d.gfunc(r, rp, dr, z, zp, dz);
+[gval, gdz, gdr, gdrp, gdrpr, gdzz, gdrz, gdrpz] = chnk.axissymlap2d.gfuncall_amandin(r, rp, dr, z, zp, dz, maxm);
+
+disp(['gval error = ' num2str(norm(gval-exact))]);
+disp(['gdz error = ' num2str(norm(gdz-exact_gdz))]);
+disp(['gdr error = ' num2str(norm(gdr-exact_gdr))]);
+disp(['gdrp error = ' num2str(norm(gdrp-exact_gdrp))]);
+disp(['gdzz error = ' num2str(norm(gdzz-exact_gdzz))]);
+disp(['gdrz error = ' num2str(norm(gdrz-exact_gdrz))]);
+disp(['gdrpz error = ' num2str(norm(gdrpz-exact_gdrpz))]);
+disp(['gdrpr error = ' num2str(norm(gdrpr-exact_gdrpr))]);
 
 
-disp(['from 0 mode gfunc, gval = ' num2str(gval) ' error = ' num2str(abs(gval-exact(1)))]);
-disp(['from 0 mode gfunc, gdz = ' num2str(gdz) ' error = ' num2str(abs(gdz-exact_gdz(1)))]);
-disp(['from 0 mode gfunc, gdr = ' num2str(gdr) ' error = ' num2str(abs(gdr-exact_gdr(1)))]);
-disp(['from 0 mode gfunc, gdrp = ' num2str(gdrp) ' error = ' num2str(abs(gdrp-exact_gdrp(1)))]);
-disp(['from 0 mode gfunc, gdzz = ' num2str(gdzz) ' error = ' num2str(abs(gdzz-exact_gdzz(1)))]);
-disp(['from 0 mode gfunc, gdrz = ' num2str(gdrz) ' error = ' num2str(abs(gdrz-exact_gdrz(1)))]);
-disp(['from 0 mode gfunc, gdrpz = ' num2str(gdrpz) ' error = ' num2str(abs(gdrpz-exact_gdrpz(1)))]);
-disp(['from 0 mode gfunc, gdrpr = ' num2str(gdrpr) ' error = ' num2str(abs(gdrpr-exact_gdrpr(1)))]);
