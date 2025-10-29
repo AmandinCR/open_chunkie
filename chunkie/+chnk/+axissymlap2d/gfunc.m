@@ -33,7 +33,8 @@ function [gval, gdz, gdr, gdrp, gdrpr, gdzz, gdrz, gdrpz] = gfunc(r, rp, dr, z, 
 
     % Amandin hessian stuff
     chi = 1+t;
-    q0dd = ((1/4)*q0 + 2*chi.*q0d)./(1-chi.^2);
+    %q0dd = ((1/4)*q0 + 2*chi.*q0d)./(1-chi.^2);
+    q0dd = ((1/4)*q0 + 2*chi.*q0d)./(-t.^2-2*t);
 
     rfac = 1./(rp.*r).*q0d + (dz./(rp.*r)).^2.*q0dd;
     gdzz = 2*pi*sqrt(rp./r).*rfac;

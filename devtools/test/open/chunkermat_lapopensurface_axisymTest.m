@@ -7,16 +7,13 @@ format long e;
 
 % geometry
 [chnkr,~,~] = get_disk_geometry();
-npts = chnkr.npt; % total number of points in discretization
 src = chnkr.r(:,:); % coordinates of points on the generating curve [2,64]
-%plot(chnkr, 'b.');
+
+plot(chnkr, 'b.');
+
 
 % setup quadrature options
 opts = [];
-opts.rcip = true;
-opts.l2scale = false;
-opts.forcesmooth = false;
-opts.nsub_or_tol = 30;
 
 %nsys = 2*npts;
 origin = [0,0];
@@ -24,39 +21,61 @@ origin = [0,0];
 % define kernels
 c = 2.0;
 Z = kernel.zeros();
-S = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'s');
-Dprime = @(s,t) 1/(4*pi^2) * kern_0th_mode(s,t,origin,'dprime');
+S = kernel('axissymlap','s');
+Dp = kernel('axissymlap','dprime');
 
-opts.sing = 'log';
-Smat = chunkermat_normal(chnkr, S, opts);
-opts.sing = 'hs';
-Dpmat = chunkermat_normal(chnkr, Dprime, opts);
-Kmat = Smat*Dpmat;
+K = [ Z       c*S;
+      c*Dp   Z ];
+K = kernel(K);
+Keval = kernel([Z c*S]);
 
-% discretize system
-%K = [Z, c * kernel(S);
-%     c * kernel(Dprime), Z];
-%K = kernel(K);
+npts = chnkr.npt;
+nsys = K.opdims(1)*npts;
+rhs = zeros(nsys, 1);
+rhs(1:K.opdims(1):end) = 1;
 
-% chunkermat_normal gives actual accuracy unlike the shidong chunkermat
-%Kmat = chunkermat_normal(chnkr, K, opts) + eye(nsys);
+% Build the system matrix
+opts = [];opts.l2scale = false;opts.rcip = true;
+opts.nsub_or_tol = 30;
+start = tic;
+A = chunkermat(chnkr, K, opts) + eye(nsys);
+t1 = toc(start);
+fprintf('%5.2e s : time to build the system matrix\n', t1)
 
-% compute boundary condition
-f = ones(1,npts);
-%rhs = zeros(nsys,1);
-%rhs(1:2:end) = f';
-rhs = f';
+% Solve the linear system
+start = tic;
+sol = gmres(A, rhs, [], 1e-12, 200);
+t1 = toc(start);
 
-% solve
-sigma = gmres(Kmat, rhs, [], 1e-12, npts);
+% Compute the numerical solution
+opts.forcesmooth = false;
+opts.verb = false;
+opts.quadkgparams = {'RelTol', 1e-8, 'AbsTol', 1.0e-8};
 
-sigma2 = gmres(Smat, rhs, [], 1e-12, npts);
+if isa(chnkr, 'chunkgraph')
+    chnkrs = chnkr.echnks;
+    chnkrtotal = merge(chnkrs);
+else
+    chnkrtotal = chnkr;
+end
 
-% compute error
-sigma_exact = 4./(pi*sqrt(1-src(1,:).^2))';
-%error = sigma(2:2:end) - sigma_exact;
-error1 = sigma2 - sigma_exact;
-error2 = Dpmat*sigma - sigma_exact;
+ntarg = 100;
+targets = rand(2,ntarg);
+start = tic;
+unum = chunkerkerneval(chnkrtotal, Keval, sol, targets, opts)
+t2 = toc(start);
+fprintf('%5.2e s : time to eval at targs (slow, adaptive routine)\n', t2)
+
+% Reference solution 
+rho = targets(1,:);rho=rho(:);
+z = targets(2,:);z=z(:);
+z2= z.^2;
+r2 = rho.^2+z2;
+
+uref = 2/pi*acot(sqrt(0.5*((r2-1)+sqrt((r2-1).^2+4*z2))));
+relerr  = norm(unum-uref) / norm(uref)
+
+
 
 
 
