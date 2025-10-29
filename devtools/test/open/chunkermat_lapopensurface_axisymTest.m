@@ -9,7 +9,7 @@ format long e;
 [chnkr,~,~] = get_disk_geometry();
 src = chnkr.r(:,:); % coordinates of points on the generating curve [2,64]
 
-plot(chnkr, 'b.');
+%plot(chnkr, 'b.');
 
 
 % setup quadrature options
@@ -50,7 +50,7 @@ t1 = toc(start);
 % Compute the numerical solution
 opts.forcesmooth = false;
 opts.verb = false;
-opts.quadkgparams = {'RelTol', 1e-8, 'AbsTol', 1.0e-8};
+opts.quadkgparams = {'RelTol', 1e-12, 'AbsTol', 1.0e-12};
 
 if isa(chnkr, 'chunkgraph')
     chnkrs = chnkr.echnks;
@@ -60,9 +60,9 @@ else
 end
 
 ntarg = 100;
-targets = rand(2,ntarg);
+targets = rand(2,ntarg);targets(2,:)=targets(2,:)+0.5;
 start = tic;
-unum = chunkerkerneval(chnkrtotal, Keval, sol, targets, opts)
+unum = chunkerkerneval(chnkrtotal, Keval, sol, targets, opts);
 t2 = toc(start);
 fprintf('%5.2e s : time to eval at targs (slow, adaptive routine)\n', t2)
 
