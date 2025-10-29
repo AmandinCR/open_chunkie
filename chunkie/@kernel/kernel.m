@@ -109,6 +109,8 @@ classdef kernel
                       obj = kernel.zeros(varargin{:});
                   case {'nans', 'nan'}
                       obj = kernel.nans(varargin{:});
+                  case {'axis sym laplace', 'axissyml', 'axissymlap'}
+                      obj = kernel.axissymlap2d(varargin{:});    
                   case {'axis sym helmholtz', 'axissymh', 'axissymhelm'}
                       obj = kernel.axissymhelm2d(varargin{:});
                   case {'axis sym helmholtz difference', 'axissymhdiff' ...
@@ -132,9 +134,9 @@ classdef kernel
               end
           elseif ( isa(kern, 'kernel') )
               if (numel(kern) == 1)
-		obj = kern;
-	      else
-		obj = interleave(kern);
+            		obj = kern;
+      	      else
+            		obj = interleave(kern);
               end
           elseif isa(kern,'cell')
             sz = size(kern); assert(length(sz)==2,'KERNEL: first input not of a supported type');
@@ -159,6 +161,7 @@ classdef kernel
         obj = helm2ddiff(varargin);
         obj = stok2d(varargin);
         obj = elast2d(varargin);
+        obj = axissymlap2d(varargin);
         obj = axissymhelm2d(varargin);
         obj = axissymhelm2ddiff(varargin);
         obj = helm2dquas(varargin);

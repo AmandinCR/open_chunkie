@@ -29,17 +29,25 @@ dz = z-zp; % z - z'
 
 [gs,gdzs,gdrs,gdrps,gdrpr,gdzz,gdrz,gdrpz] = chnk.axissymlap2d.gfunc(r,rp,dr,z,zp,dz);
 
-val = gs;
+const = 1/(4*pi^2);
+
+val = gs*const;
 grad = zeros(nt, ns, 4);
 grad(:,:,1) = gdrs;
 grad(:,:,2) = gdrps;
 grad(:,:,3) = gdzs;
 grad(:,:,4) = -gdzs;
+grad = grad*const;
 
 hess = zeros(nt, ns, 4);
 hess(:,:,1) = gdrpr;
 hess(:,:,2) = -gdzz;
 hess(:,:,3) = -gdrz;
 hess(:,:,4) = gdrpz;
+hess = hess*const;
+
+% if anynan(hess)
+%   error('Execution stopped: NaN value detected.');
+% end
 
 end

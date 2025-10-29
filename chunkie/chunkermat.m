@@ -133,9 +133,9 @@ corrections = false;
 l2scale = false;
 isrcip = true;
 rcip_ignore = [];
-nsub = 40;
+nsub = 30;
 adaptive_correction = false;
-sing = 'log';
+sing = 'hs';
 
 % get opts from struct if available
 
