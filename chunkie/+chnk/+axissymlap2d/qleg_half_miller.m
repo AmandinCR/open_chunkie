@@ -15,6 +15,26 @@ function [qm, qmd, qmdd] = qleg_half_miller(t, m, mask_iter)
     
     % compute chi
     chi = t+1;
+
+    % use forward reccurence
+    if (m > 12307)
+        mask1 = 1.00000005d0 <= (chi < 1.005);
+    elseif (m > 4380)
+        mask1 = 1.0000005d0 <= (chi < 1.005);
+    elseif (m > 1438)
+        mask1 = 1.000005d0 <= (chi < 1.005);
+    elseif (m > 503)
+        mask1 = 1.00005d0 <= (chi < 1.005);
+    elseif (m > 163)
+        mask1 = 1.0005d0 <= (chi < 1.005);
+    else
+        mask1 = x < 1.005; 
+    end
+
+    % use backward reccurence
+    mask2_stable = ~mask1;
+
+
     
     % initialize the seeds for the Legendre functions
     [q0,q1,q0d] = chnk.axissymlap2d.qleg_half(t);
