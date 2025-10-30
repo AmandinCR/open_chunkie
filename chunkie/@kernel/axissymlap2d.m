@@ -16,14 +16,14 @@ switch lower(type)
         obj.eval = @(s,t) chnk.axissymlap2d.kern(s, t, [0,0], 's');
         obj.shifted_eval = @(s,t,o) chnk.axissymlap2d.kern(s, t, o, 's');
         obj.fmm = [];
-        obj.sing = 'log';
+        %obj.sing = 'log';
 
     case {'dp', 'dprime'}
         obj.type = 'dp';
         obj.eval = @(s,t) chnk.axissymlap2d.kern(s, t, [0,0], 'dprime');
         obj.shifted_eval = @(s,t,o) chnk.axissymlap2d.kern(s, t, o, 'dprime');
         obj.fmm = [];
-        obj.sing = 'hs';
+        %obj.sing = 'hs';
 
     otherwise
         error('Unknown axissym Laplace kernel type ''%s''.', type);

@@ -1,4 +1,4 @@
-function [qm, qmd, qmdd] = qleg_half_miller(t, m, mask_iter)
+function [qm, qmd, qmdd] = qleg_half_miller(t, m)
 
     %
     % Uses Miller's Algorithm to compute the half Legendre functions of the
@@ -15,26 +15,6 @@ function [qm, qmd, qmdd] = qleg_half_miller(t, m, mask_iter)
     
     % compute chi
     chi = t+1;
-
-    % use forward reccurence
-    if (m > 12307)
-        mask1 = 1.00000005d0 <= (chi < 1.005);
-    elseif (m > 4380)
-        mask1 = 1.0000005d0 <= (chi < 1.005);
-    elseif (m > 1438)
-        mask1 = 1.000005d0 <= (chi < 1.005);
-    elseif (m > 503)
-        mask1 = 1.00005d0 <= (chi < 1.005);
-    elseif (m > 163)
-        mask1 = 1.0005d0 <= (chi < 1.005);
-    else
-        mask1 = x < 1.005; 
-    end
-
-    % use backward reccurence
-    mask2_stable = ~mask1;
-
-
     
     % initialize the seeds for the Legendre functions
     [q0,q1,q0d] = chnk.axissymlap2d.qleg_half(t);
@@ -138,7 +118,7 @@ function [qm, qmd, qmdd] = qleg_half_miller(t, m, mask_iter)
         qmdd(i) = (-(i-3/2)*(i-1/2)*qm(i) + 2*chi.*qmd(i))./(1-chi.^2);
     end
 end
-
+%{
 function [mask_blowup, mask_stable, nterms] = get_masks(t, m)
     % run the forward reccurence until it has blown up
     % recurrence intialization
@@ -174,3 +154,4 @@ function [mask_blowup, mask_stable, nterms] = get_masks(t, m)
     mask_blowup = (abs(f) >= lbound) & (abs(d) >= lbound);
     mask_stable = ~mask_blowup;
 end
+%}

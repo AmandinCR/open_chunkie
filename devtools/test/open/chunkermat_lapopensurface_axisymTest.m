@@ -7,15 +7,12 @@ format long e;
 
 % geometry
 [chnkr,~,~] = get_disk_geometry();
-src = chnkr.r(:,:); % coordinates of points on the generating curve [2,64]
+src = chnkr.r(:,:); % coordinates of points on the generating curve
 
 %plot(chnkr, 'b.');
 
 
 % setup quadrature options
-opts = [];
-
-nsys = 2*npts;
 origin = [0,0];
 
 % define kernels
@@ -27,6 +24,7 @@ Dp = kernel('axissymlap','dprime');
 K = [ Z       c*S;
       c*Dp   Z ];
 K = kernel(K);
+
 Keval = kernel([Z c*S]);
 
 npts = chnkr.npt;
@@ -38,6 +36,10 @@ rhs(1:K.opdims(1):end) = 1;
 opts = [];opts.l2scale = false;opts.rcip = true;
 opts.nsub_or_tol = 30;
 start = tic;
+
+%K.sing = 'hs';
+opts.sing = 'hs';
+
 A = chunkermat(chnkr, K, opts) + eye(nsys);
 t1 = toc(start);
 fprintf('%5.2e s : time to build the system matrix\n', t1)
@@ -52,17 +54,10 @@ opts.forcesmooth = false;
 opts.verb = false;
 opts.quadkgparams = {'RelTol', 1e-12, 'AbsTol', 1.0e-12};
 
-if isa(chnkr, 'chunkgraph')
-    chnkrs = chnkr.echnks;
-    chnkrtotal = merge(chnkrs);
-else
-    chnkrtotal = chnkr;
-end
-
 ntarg = 100;
 targets = rand(2,ntarg);targets(2,:)=targets(2,:)+0.5;
 start = tic;
-unum = chunkerkerneval(chnkrtotal, Keval, sol, targets, opts);
+unum = chunkerkerneval(chnkr, Keval, sol, targets, opts);
 t2 = toc(start);
 fprintf('%5.2e s : time to eval at targs (slow, adaptive routine)\n', t2)
 

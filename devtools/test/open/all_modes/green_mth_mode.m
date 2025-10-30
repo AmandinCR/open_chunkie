@@ -29,9 +29,7 @@ z  = repmat(targ(2,:).',1,ns);
 zp = repmat(src(2,:),nt,1);
 dz = z-zp; % z - z'
 
-
-%[gs,gdzs,gdrs,gdrps,gdrpr,gdzz,gdrz,gdrpz] = chnk.axissymlap2d.gfuncall_amandin(r,rp,dr,z,zp,dz,m);
-
+%{
 gs = zeros(m+1,size(r,1),size(r,2));
 gdrs = zeros(m+1,size(r,1),size(r,2));
 gdrps = zeros(m+1,size(r,1),size(r,2));
@@ -46,6 +44,8 @@ for i=1:size(r,1)
         [gs(:,i,j),gdzs(:,i,j),gdrs(:,i,j),gdrps(:,i,j),gdrprs(:,i,j),gdzzs(:,i,j),gdrzs(:,i,j),gdrpzs(:,i,j)] = chnk.axissymlap2d.gfuncall_amandin(r(i,j),rp(i,j),dr(i,j),z(i,j),zp(i,j),dz(i,j),m);
     end
 end
+%}
+[gs,gdzs,gdrs,gdrps,gdrprs,gdzzs,gdrzs,gdrpzs] = chnk.axissymlap2d.gfuncall_amandin(r,rp,dr,z,zp,dz,m);
 
 val = gs(m,:,:);
 val = reshape(val,[nt,ns]);

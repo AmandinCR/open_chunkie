@@ -14,7 +14,17 @@ function [gval, gdz, gdr, gdrp, gdrpr, gdzz, gdrz, gdrpz] = gfuncall_amandin(r, 
     t = (dz.^2+dr.^2)./(2.*r.*rp);
     chi = t+1;
     
-    [qm, qmd, qmdd] = chnk.axissymlap2d.qleg_half_miller(t,m);
+    [qm, qmd, qmdd] = chnk.axissymlap2d.qleg_half_miller_vec(t,m);
+
+    r = reshape(r,[1,size(r,1),size(r,2)]);
+    rp = reshape(rp,[1,size(rp,1),size(rp,2)]);
+    dr = reshape(dr,[1,size(dr,1),size(dr,2)]);
+    z = reshape(z,[1,size(z,1),size(z,2)]);
+    zp = reshape(zp,[1,size(zp,1),size(zp,2)]);
+    dz = reshape(dz,[1,size(dz,1),size(dz,2)]);
+
+    t = reshape(t,[1,size(t,1),size(t,2)]);
+    chi = reshape(chi,[1,size(chi,1),size(chi,2)]);
     
     gval = 2*pi*sqrt(rp./r).*qm;
     gdz  = 2*pi*sqrt(rp./r).*qmd ...

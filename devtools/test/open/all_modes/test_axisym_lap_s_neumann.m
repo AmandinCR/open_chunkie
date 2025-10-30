@@ -21,7 +21,7 @@ n_src = chnkr.n(:,:); % normals of all the points on the generating curve
 % plot geometry
 %plot(chnkr);
 
-p_modes = 3; % number of positive fourier modes
+p_modes = 4; % number of positive fourier modes
 n_modes = 2*p_modes + 1; % number of fourier modes (must be odd for pos/0/neg)
 n_angles = n_modes; % number of angles/rotations
 strength = 1.0;
