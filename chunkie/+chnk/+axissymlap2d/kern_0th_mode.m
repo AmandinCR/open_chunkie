@@ -55,7 +55,7 @@ targ = targinfo.r;
 
 if strcmpi(type, 'd')
     srcnorm = srcinfo.n;
-    [~, grad] = green_0th_mode(src, targ, origin);
+    [~, grad] = chnk.axissymlap2d.green_0th_mode(src, targ, origin);
     nx = repmat(srcnorm(1,:), nt, 1);
     ny = repmat(srcnorm(2,:), nt, 1);
     % dr'*nr' + dz'*nz'
@@ -63,13 +63,13 @@ if strcmpi(type, 'd')
 end
 
 if strcmpi(type, 's')
-    [val, ~] = green_0th_mode(src, targ, origin);
+    [val, ~] = chnk.axissymlap2d.green_0th_mode(src, targ, origin);
     submat = val;
 end
 
 if strcmpi(type, 'sprime')
     targnorm = targinfo.n;
-    [~, grad] = green_0th_mode(src, targ, origin);
+    [~, grad] = chnk.axissymlap2d.green_0th_mode(src, targ, origin);
     nx = repmat((targnorm(1,:)).',1,ns);
     ny = repmat((targnorm(2,:)).',1,ns);
     % dr*nr + dz*nz
@@ -77,12 +77,12 @@ if strcmpi(type, 'sprime')
 end
 
 if strcmpi(type, 'sgradr')
-    [~, grad] = green_0th_mode(src, targ, origin);
+    [~, grad] = chnk.axissymlap2d.green_0th_mode(src, targ, origin);
     submat = grad(:,:,1);
 end
 
 if strcmpi(type, 'sgradz')
-    [~, grad] = green_0th_mode(src, targ, origin);
+    [~, grad] = chnk.axissymlap2d.green_0th_mode(src, targ, origin);
     submat = grad(:,:,3);
 end
 
@@ -111,7 +111,7 @@ if strcmpi(type, 'dprime')
     nys = repmat(srcnorm(2,:), nt, 1);
     
     % hess = d_{rr'}, d_{zz'}, d_{rz'}, d_{r'z}
-    [~, ~, hess] = green_0th_mode(src, targ, origin);
+    [~, ~, hess] = chnk.axissymlap2d.green_0th_mode(src, targ, origin);
     submat = (hess(:,:,1).*nxt.*nxs + hess(:,:,3).*nys.*nxt ...
         + hess(:,:,4).*nxs.*nyt + hess(:,:,2).*nyt.*nys);
 end

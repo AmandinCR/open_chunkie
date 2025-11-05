@@ -29,36 +29,50 @@ z  = repmat(targ(2,:).',1,ns);
 zp = repmat(src(2,:),nt,1);
 dz = z-zp; % z - z'
 
-%{
-gs = zeros(m+1,size(r,1),size(r,2));
-gdrs = zeros(m+1,size(r,1),size(r,2));
-gdrps = zeros(m+1,size(r,1),size(r,2));
-gdzs = zeros(m+1,size(r,1),size(r,2));
 
-gdzzs = zeros(m+1,size(r,1),size(r,2));
-gdrprs = zeros(m+1,size(r,1),size(r,2));
-gdrzs = zeros(m+1,size(r,1),size(r,2));
-gdrpzs = zeros(m+1,size(r,1),size(r,2));
+
+
+[gs,gdzs,gdrs,gdrps,gdrprs,gdzzs,gdrzs,gdrpzs] = chnk.axissymlap2d.gfuncall_amandin(r,rp,dr,z,zp,dz,m);
+
+%{
+gs2 = zeros(m+1,size(r,1),size(r,2));
+gdrs2 = zeros(m+1,size(r,1),size(r,2));
+gdrps2 = zeros(m+1,size(r,1),size(r,2));
+gdzs2 = zeros(m+1,size(r,1),size(r,2));
 for i=1:size(r,1)
     for j=1:size(r,2)
-        [gs(:,i,j),gdzs(:,i,j),gdrs(:,i,j),gdrps(:,i,j),gdrprs(:,i,j),gdzzs(:,i,j),gdrzs(:,i,j),gdrpzs(:,i,j)] = chnk.axissymlap2d.gfuncall_amandin(r(i,j),rp(i,j),dr(i,j),z(i,j),zp(i,j),dz(i,j),m);
+        [gs2(:,i,j),gdzs2(:,i,j),gdrs2(:,i,j),gdrps2(:,i,j)] = chnk.axissymlap2d.g0funcall(r(i,j),rp(i,j),dr(i,j),z(i,j),zp(i,j),dz(i,j),m);
     end
 end
+
+M1 = max(abs(gs2(m,:,:)-gs(m,:,:)), [], 'all');
+if M1 > 1e-6
+    xd = sum(abs(gs2(m,:,:)-gs) > 1e-6, 'all');
+    disp(['error = ' num2str(xd)]);
+end
 %}
-[gs,gdzs,gdrs,gdrps,gdrprs,gdzzs,gdrzs,gdrpzs] = chnk.axissymlap2d.gfuncall_amandin(r,rp,dr,z,zp,dz,m);
+
+
+
+const = 1/(4*pi^2);
 
 val = gs(m,:,:);
 val = reshape(val,[nt,ns]);
+val = const*val;
+
 grad = zeros(nt, ns, 4);
 grad(:,:,1) = gdrs(m,:,:);
 grad(:,:,2) = gdrps(m,:,:);
 grad(:,:,3) = gdzs(m,:,:);
 grad(:,:,4) = -gdzs(m,:,:);
+grad = const*grad;
 
 hess = zeros(nt, ns, 4);
 hess(:,:,1) = gdrprs(m,:,:);
 hess(:,:,2) = -gdzzs(m,:,:);
 hess(:,:,3) = -gdrzs(m,:,:);
 hess(:,:,4) = gdrpzs(m,:,:);
+hess = const*hess;
+
 
 end

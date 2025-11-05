@@ -55,8 +55,8 @@ opts.sing = 'smooth';
 % discretize integral equation
 % (chunkermat_normal is just the chunkermat that shidong has not edited for
 % RCIP)
-G = @(s,t) kern_0th_mode(s,t,[0,0],'sprime');
-A = 1/(4*pi^2) * chunkermat_normal(chnkr, G, opts) - 0.5*eye(npts);
+G = @(s,t) chnk.axissymlap2d.kern_0th_mode(s,t,[0,0],'sprime');
+A = chunkermat_normal(chnkr, G, opts) - 0.5*eye(npts);
 
 % enforce zero-mean constraint for compatability condition
 A = A + onesmat(chnkr);
@@ -74,8 +74,8 @@ opts.sing = 'log';
 target_cyl = [sqrt(target(1)^2 + target(2)^2);target(3)];
 
 % define solution representation
-G = @(s,t) kern_0th_mode(s,t,[0,0],'s');
-G_eval = 1/(4*pi^2) * kernel(G);
+G = @(s,t) chnk.axissymlap2d.kern_0th_mode(s,t,[0,0],'s');
+G_eval = kernel(G);
 
 % evaluate at target
 u_sol = chunkerkerneval(chnkr, G_eval, sigma, target_cyl, opts);

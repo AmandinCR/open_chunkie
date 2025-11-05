@@ -12,10 +12,10 @@ function [qm, qmd, qmdd] = qleg_half_miller_vec(t, m)
     % qm: [Q_{-1/2},...,Q_{m-1/2}]
     % qmd: [dQ_{-1/2},...,dQ_{m-1/2}]
     % qmdd: [d^2 Q_{-1/2},...,d^2 Q_{m-1/2}]
+    %
     
     % compute chi
     chi = t+1;
-    chi = reshape(chi,[1,size(chi,1),size(chi,2)]);
     
     % check if we can run the forward recurrence
     % use forward reccurence
@@ -34,20 +34,20 @@ function [qm, qmd, qmdd] = qleg_half_miller_vec(t, m)
     end
     mask2 = ~mask1; % use backward reccurence
 
-    qm = zeros(m+1,size(t,1),size(t,2));
-    qmd = zeros(m+1,size(t,1),size(t,2));
-    qmdd = zeros(m+1,size(t,1),size(t,2));
+    qm = zeros(m+1,size(t,2),size(t,3));
+    qmd = zeros(m+1,size(t,2),size(t,3));
+    qmdd = zeros(m+1,size(t,2),size(t,3));
     
     % run the forward reccurence
-    if (sum(mask1) ~= 0)
+    if (sum(mask1,'all') ~= 0)
         [qm(:,mask1),qmd(:,mask1),qmdd(:,mask1)] = forward_reccurence(t(mask1),m);
     end
 
     % run the backward reccurence
-    if (sum(mask2) ~= 0)
+    if (sum(mask2,'all') ~= 0)
         [qm(:,mask2),qmd(:,mask2),qmdd(:,mask2)] = backward_reccurence(t(mask2),m);
     end
-    
+
 end
 
 function [qm,qmd,qmdd] = forward_reccurence(t, m)
@@ -57,22 +57,25 @@ function [qm,qmd,qmdd] = forward_reccurence(t, m)
     % initialize the seeds for the Legendre functions
     [q0,q1,q0d] = chnk.axissymlap2d.qleg_half(t);
     q1d = (-q0 + chi.*q1)./(2*(chi+1).*t);
+    
+    qm = zeros(m+1,size(t,1));
+    qmd = zeros(m+1,size(t,1));
+    qmdd = zeros(m+1,size(t,1));
 
-    qm = zeros(m+1,size(chi,1));
-    qmd = zeros(m+1,size(chi,1));
-    qmdd = zeros(m+1,size(chi,1));
-
-    qm(1,:) = q0';
-    qm(2,:) = q1';
+    qm(1,:) = q0;
+    qm(2,:) = q1;
     qmd(1,:) = q0d';
     qmd(2,:) = q1d';
+
     for i = 1:(m-1)
-        qm(2+i,:) = 4*(i-1)/(2*i-1)*chi'.*qm(1+i,:) - (2*i-3)/(2*i-1)*qm(i,:);
-        qmd(2+i,:) = (-(m-1/2)*chi'.*qm(2+i,:) + (m+1/2)*qm(1+i,:))./(1-chi'.^2);
+        j = i+1;
+        qm(2+i,:) = 4*(j-1)/(2*j-1)*chi'.*qm(1+i,:) - (2*j-3)/(2*j-1)*qm(i,:);
+        qmd(2+i,:) = ((j-1/2)*qm(1+i,:) - (j-1/2)*chi'.*qm(2+i,:))./(-t'.^2-2*t');
     end
 
     for i = 1:m+1
-        qmdd(i,:) = (-(i-3/2)*(i-1/2)*qm(i,:) + 2*chi'.*qmd(i,:))./(1-chi'.^2);
+        j = i-1;
+        qmdd(i,:) = (-(j-1/2)*(j+1/2)*qm(i,:) + 2*chi'.*qmd(i,:))./(-t'.^2-2*t');
     end
 end
 
@@ -84,6 +87,9 @@ function [qm,qmd,qmdd] = backward_reccurence(t, m)
     [q0,~,q0d] = chnk.axissymlap2d.qleg_half(t);
 
     % Millers Algorithm:
+    qm = zeros(m+1,size(t,1));
+    qmd = zeros(m+1,size(t,1));
+    qmdd = zeros(m+1,size(t,1));
 
     % 1. run the forward reccurence until it has blown up
     % recurrence intialization
@@ -94,14 +100,15 @@ function [qm,qmd,qmdd] = backward_reccurence(t, m)
     % should maybe wait until second derivatives also blow up
 
     maxiter = 1000; % max number of extra terms
-    upbound = 1.0e19; % blow up tolerance
+    upbound = 1.0e17; % blow up tolerance
     nterms = zeros(size(t)); % number of extra terms
     
     % list of recurrences that have blown up
     already_blowup = zeros(size(t)); 
     for i = m:maxiter
-        f = 4*(i-1)/(2*i-1)*chi.*fprev - (2*i-3)/(2*i-1)*fprevprev;
-        d = (-(m-1/2)*chi.*fprev + (m+1/2)*fprevprev)./(1-chi.^2);
+        j = i+1;
+        f = 4*(j-1)/(2*j-1)*chi.*fprev - (2*j-3)/(2*j-1)*fprevprev;
+        d = ((j-1/2)*fprevprev - (j-1/2)*chi.*fprev)./(-t.^2-2*t);
 
         % check which values blew up
         f_blowup = (abs(f) >= upbound);
@@ -125,6 +132,10 @@ function [qm,qmd,qmdd] = backward_reccurence(t, m)
         fprev = f;
     end
 
+    % replace zeros in nterms with maxiter
+    maxedout = nterms == 0;
+    nterms = nterms + maxiter*maxedout;
+
     % 2. run the backward reccurence
     % recurrence intialization
     fprev = ones(size(t));
@@ -132,26 +143,26 @@ function [qm,qmd,qmdd] = backward_reccurence(t, m)
     
     % run the backward reccurence from nterms to m
     nterm_max = max(nterms, [], 'all');
-    for j = 1:(nterm_max-m+1)
-        i = nterm_max-j+1+1;
+    for i = 1:(nterm_max-m+1)
+        j = nterm_max-i+1+1;
 
-        f = 4*(i-1)/(2*i-3)*chi.*fprev - (2*i-1)/(2*i-3)*fprevprev;
+        f = 4*(j-1)/(2*j-3)*chi.*fprev - (2*j-1)/(2*j-3)*fprevprev;
 
         % check if we should start the backwards reccurence yet
-        should_compute = (i <= nterms);
+        should_compute = (j <= nterms);
         
         % only update if we have started the reccurence for that element
         fprevprev = fprev.*should_compute;
-        fprev = f.*should_compute + fprev.*~should_compute;
+        fprev = f.*should_compute + fprev.*(~should_compute);
     end
 
     qm(m,:) = fprev';
     qm(m+1,:) = fprevprev';
 
     % run the backward reccurence from m to 1
-    for j = 1:(m-1)
-        i = m-1-j+1+1;
-        qm(i-1,:) = 4*(i-1)/(2*i-3)*chi'.*qm(i,:) - (2*i-1)/(2*i-3)*qm(i+1,:);
+    for i = 1:(m-1)
+        j = m-1-i+1+1;
+        qm(j-1,:) = 4*(j-1)/(2*j-3)*chi'.*qm(j,:) - (2*j-1)/(2*j-3)*qm(j+1,:);
     end
     
     % 3. compute error and scale solution
@@ -164,11 +175,11 @@ function [qm,qmd,qmdd] = backward_reccurence(t, m)
     % 4. compute 1st derivatives
     qmd(1,:) = q0d';
     for i = 1:m
-        qmd(i+1,:) = (-(i-1/2)*chi'.*qm(i+1,:) + (i-1/2)*qm(i,:))./(1-chi'.^2);
+        qmd(i+1,:) = (-(i-1/2)*chi'.*qm(i+1,:) + (i-1/2)*qm(i,:))./(-t'.^2-2*t');
     end
     
     % 5. compute 2nd derivatives
     for i = 1:m+1
-        qmdd(i,:) = (-(i-3/2)*(i-1/2)*qm(i,:) + 2*chi'.*qmd(i,:))./(1-chi'.^2);
+        qmdd(i,:) = (-(i-3/2)*(i-1/2)*qm(i,:) + 2*chi'.*qmd(i,:))./(-t'.^2-2*t');
     end
 end

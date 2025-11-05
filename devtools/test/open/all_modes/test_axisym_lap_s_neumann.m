@@ -9,6 +9,7 @@
 clearvars; 
 close all;
 format long e;
+clc;
 
 %% geometry
 % target is where we evaluate the solution
@@ -21,7 +22,7 @@ n_src = chnkr.n(:,:); % normals of all the points on the generating curve
 % plot geometry
 %plot(chnkr);
 
-p_modes = 4; % number of positive fourier modes
+p_modes = 10; % number of positive fourier modes
 n_modes = 2*p_modes + 1; % number of fourier modes (must be odd for pos/0/neg)
 n_angles = n_modes; % number of angles/rotations
 strength = 1.0;
@@ -58,7 +59,7 @@ end
 
 % Reorder FFT output to match
 modes = -p_modes:p_modes;
-f_fft = fft(f, n_modes, 1) / n_modes; % FFT (normalized)
+f_fft = fft(f, n_modes, 1) / n_angles; % FFT (normalized)
 f_m = fftshift(f_fft, 1);  % puts negative freqs first
 
 %% solve
@@ -75,7 +76,7 @@ for i=1:n_modes
     G = @(s,t) kern_mth_mode(s,t,[0,0],'sprime',abs(modes(i))+1);
 
     % Build the system matrix
-    A_m = 1/(4*pi^2) * chunkermat_normal(chnkr, G, opts);
+    A_m = chunkermat_normal(chnkr, G, opts);
 
     % Enforce zero-mean constraint for compatability condition
     A_m = A_m - 0.5*eye(npts) + onesmat(chnkr);
@@ -87,7 +88,7 @@ end
 %% solution building
 opts.forcesmooth = false;
 opts.verb = false;
-opts.quadkgparams = {'RelTol', 1e-8, 'AbsTol', 1.0e-8};
+opts.quadkgparams = {'RelTol', 1e-10, 'AbsTol', 1.0e-10};
 opts.sing = 'log';
 
 % target in cylindrical coordinates (r,theta,z)
@@ -97,7 +98,7 @@ target_new = [target_cyl(1);target_cyl(3)];
 u_sol = 0;
 for i=1:n_modes
     G = @(s,t) kern_mth_mode(s,t,[0,0],'s',abs(modes(i))+1);
-    G_eval = 1/(4*pi^2) * kernel(G);
+    G_eval = kernel(G);
     
     u_m = chunkerkerneval(chnkr, G_eval, sigma_m(i,:), target_new, opts);
     u_sol = u_sol + real(u_m * exp(1i * modes(i) * target_cyl(2)));
@@ -107,7 +108,7 @@ end
 % only unique up to a constant since neumann BC
 r1 = norm(target - charge1);
 r2 = norm(target - charge2);
-u_true = strength*1/(4*pi)*(1/r1 - 1/r2);
+u_true = strength*1.0/(4*pi)*(1/r1 - 1/r2);
 
 % compute the error
 err = norm(u_sol-u_true)
