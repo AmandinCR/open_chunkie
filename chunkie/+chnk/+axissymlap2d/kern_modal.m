@@ -1,4 +1,4 @@
-function submat = kern_mth_mode(srcinfo, targinfo, origin, type, m)
+function submat = kern_modal(srcinfo, targinfo, origin, type, m)
 %CHNK.AXISSYMLAP2D.KERN axissymmetric Laplace layer potential kernels in 2D
 % 
 % Syntax: submat = chnk.axissymlap2d.kern(srcinfo,targinfo,type)
@@ -56,7 +56,7 @@ targ = targinfo.r;
 
 if strcmpi(type, 'd')
     srcnorm = srcinfo.n;
-    [~, grad] = green_mth_mode(src, targ, origin, m);
+    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
     nx = repmat(srcnorm(1,:), nt, 1);
     ny = repmat(srcnorm(2,:), nt, 1);
     % dr'*nr' + dz'*nz'
@@ -64,43 +64,17 @@ if strcmpi(type, 'd')
 end
 
 if strcmpi(type, 's')
-    [val, ~] = green_mth_mode(src, targ, origin, m);
+    [val, ~] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
     submat = val;
 end
 
 if strcmpi(type, 'sprime')
     targnorm = targinfo.n;
-    [~, grad] = green_mth_mode(src, targ, origin, m);
+    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
     nx = repmat((targnorm(1,:)).',1,ns);
     ny = repmat((targnorm(2,:)).',1,ns);
     % dr*nr + dz*nz
     submat = -(grad(:,:,1).*nx + grad(:,:,3).*ny);
-end
-
-if strcmpi(type, 'sgradr')
-    [~, grad] = green_mth_mode(src, targ, origin, m);
-    submat = grad(:,:,1);
-end
-
-if strcmpi(type, 'sgradz')
-    [~, grad] = green_mth_mode(src, targ, origin, m);
-    submat = grad(:,:,3);
-end
-
-if strcmpi(type, 'dgradr')
-    h = 1e-200;
-    targ_cr = targinfo;
-    targ_cr.r(1,:) = targ_cr.r(1,:) + 1i*h;
-    D_cr = kern_mth_mode(srcinfo, targ_cr, origin, 'd', m);
-    submat = imag(D_cr)/h;
-end
-
-if strcmpi(type, 'dgradz')
-    h = 1e-200;
-    targ_cz = targinfo;
-    targ_cz.r(2,:) = targ_cz.r(2,:) + 1i*h;
-    D_cz = kern_mth_mode(srcinfo, targ_cz, origin, 'd', m);
-    submat = imag(D_cz)/h;
 end
 
 if strcmpi(type, 'dprime')
@@ -112,9 +86,37 @@ if strcmpi(type, 'dprime')
     nys = repmat(srcnorm(2,:), nt, 1);
     
     % hess = d_{rr'}, d_{zz'}, d_{rz'}, d_{r'z}
-    [~, ~, hess] = green_mth_mode(src, targ, origin, m);
+    [~, ~, hess] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
     submat = (hess(:,:,1).*nxt.*nxs + hess(:,:,3).*nys.*nxt ...
         + hess(:,:,4).*nxs.*nyt + hess(:,:,2).*nyt.*nys);
+end
+
+if strcmpi(type, 'sgradr')
+    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
+    submat = grad(:,:,1);
+end
+
+if strcmpi(type, 'sgradz')
+    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
+    submat = grad(:,:,3);
+end
+
+if strcmpi(type, 'dgradr')
+    % complex step differentiation of D
+    h = 1e-200;
+    targ_cr = targinfo;
+    targ_cr.r(1,:) = targ_cr.r(1,:) + 1i*h;
+    D_cr = chnk.axissymlap2d.kern_modal(srcinfo, targ_cr, origin, 'd', m);
+    submat = imag(D_cr)/h;
+end
+
+if strcmpi(type, 'dgradz')
+    % complex step differentiation of D
+    h = 1e-200;
+    targ_cz = targinfo;
+    targ_cz.r(2,:) = targ_cz.r(2,:) + 1i*h;
+    D_cz = chnk.axissymlap2d.kern_modal(srcinfo, targ_cz, origin, 'd', m);
+    submat = imag(D_cz)/h;
 end
 
 end

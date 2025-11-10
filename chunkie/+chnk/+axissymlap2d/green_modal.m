@@ -1,12 +1,10 @@
-function [val, grad, hess] = green_mth_mode(src, targ, origin, m)
+function [val, grad, hess] = green_modal(src, targ, origin, m)
 %
-% CHNK.AXISSYMHELM2D.GREEN evaluate the Laplace green's function
+% CHNK.AXISSYMHELM2D.GREEN evaluate the Laplace modal green's function
 % for the given sources and targets. 
 %
 % Note: that the first coordinate is r, and the second z.
-% The code relies on precomputed tables and hence loops are required for 
-% computing various pairwise interactions.
-% Finally, the code is not efficient in the sense that val, grad, hess 
+% The code is not efficient in the sense that val, grad, hess 
 % are always internally computed independent of nargout
 %
 % Returns for gradient are:
@@ -29,30 +27,7 @@ z  = repmat(targ(2,:).',1,ns);
 zp = repmat(src(2,:),nt,1);
 dz = z-zp; % z - z'
 
-
-
-
-[gs,gdzs,gdrs,gdrps,gdrprs,gdzzs,gdrzs,gdrpzs] = chnk.axissymlap2d.gfuncall_amandin(r,rp,dr,z,zp,dz,m);
-
-%{
-gs2 = zeros(m+1,size(r,1),size(r,2));
-gdrs2 = zeros(m+1,size(r,1),size(r,2));
-gdrps2 = zeros(m+1,size(r,1),size(r,2));
-gdzs2 = zeros(m+1,size(r,1),size(r,2));
-for i=1:size(r,1)
-    for j=1:size(r,2)
-        [gs2(:,i,j),gdzs2(:,i,j),gdrs2(:,i,j),gdrps2(:,i,j)] = chnk.axissymlap2d.g0funcall(r(i,j),rp(i,j),dr(i,j),z(i,j),zp(i,j),dz(i,j),m);
-    end
-end
-
-M1 = max(abs(gs2(m,:,:)-gs(m,:,:)), [], 'all');
-if M1 > 1e-6
-    xd = sum(abs(gs2(m,:,:)-gs) > 1e-6, 'all');
-    disp(['error = ' num2str(xd)]);
-end
-%}
-
-
+[gs,gdzs,gdrs,gdrps,gdrprs,gdzzs,gdrzs,gdrpzs] = chnk.axissymlap2d.g0funcall_vec(r,rp,dr,z,zp,dz,m);
 
 const = 1/(4*pi^2);
 

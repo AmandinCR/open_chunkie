@@ -4,7 +4,6 @@
 % verify that the modeal Green's functions for Laplace are working properly
 %
 
-%{
 h = 0.5;
 
 r = 1.0;
@@ -14,15 +13,6 @@ dr = -h; % r - r'
 z = 0.5;
 zp = z-h;
 dz = h; % z - z'
-%}
-%
-r = 4.248815862209057e+00;
-rp = 4.249956689581140e+00;
-dr = r - rp;
-z = 4.399067310477335e-02;
-zp = 0;
-dz = z - zp;
-%}
 
 
 
@@ -40,7 +30,7 @@ exact_gdrpr = zeros(maxm+1,1);
 
 zk = 0;
 nq = 2000;
-hhh = 0.00001;
+hhh = 0.0001;
 
 % evaluate the kernel using brute force trapezoidal integration, and then
 % compare with the recurrence relation code. Note: The "exact" derivatives are
@@ -92,15 +82,11 @@ end
 
 
 %
-% compare with routine for just zero mode
+% compare with routine
 %
-[gval, gdz, gdr, gdrp, gdrpr, gdzz, gdrz, gdrpz] = chnk.axissymlap2d.gfuncall_amandin(r, rp, dr, z, zp, dz, maxm);
-%[gval, gdz, gdr, gdrp] = chnk.axissymlap2d.g0funcall(r, rp, dr, z, zp, dz, maxm);
+[gval, gdz, gdr, gdrp, gdrpr, gdzz, gdrz, gdrpz] = chnk.axissymlap2d.g0funcall_vec(r, rp, dr, z, zp, dz, maxm);
 
 disp(['gval error = ' num2str(norm(gval-exact))]);
-gdzz-exact_gdzz
-
-%{
 disp(['gdz error = ' num2str(norm(gdz-exact_gdz))]);
 disp(['gdr error = ' num2str(norm(gdr-exact_gdr))]);
 disp(['gdrp error = ' num2str(norm(gdrp-exact_gdrp))]);
@@ -108,6 +94,6 @@ disp(['gdzz error = ' num2str(norm(gdzz-exact_gdzz))]);
 disp(['gdrz error = ' num2str(norm(gdrz-exact_gdrz))]);
 disp(['gdrpz error = ' num2str(norm(gdrpz-exact_gdrpz))]);
 disp(['gdrpr error = ' num2str(norm(gdrpr-exact_gdrpr))]);
-%}
+
 
 

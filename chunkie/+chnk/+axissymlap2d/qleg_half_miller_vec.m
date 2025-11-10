@@ -18,34 +18,33 @@ function [qm, qmd, qmdd] = qleg_half_miller_vec(t, m)
     chi = t+1;
     
     % check if we can run the forward recurrence
-    % use forward reccurence
     if (m > 12307)
         mask1 = 1.00000005d0 <= (chi < 1.005);
     elseif (m > 4380)
-        mask1 = 1.0000005d0 <= (chi < 1.005);
+        mask_forward = 1.0000005d0 <= (chi < 1.005);
     elseif (m > 1438)
-        mask1 = 1.000005d0 <= (chi < 1.005);
+        mask_forward = 1.000005d0 <= (chi < 1.005);
     elseif (m > 503)
-        mask1 = 1.00005d0 <= (chi < 1.005);
+        mask_forward = 1.00005d0 <= (chi < 1.005);
     elseif (m > 163)
-        mask1 = 1.0005d0 <= (chi < 1.005);
+        mask_forward = 1.0005d0 <= (chi < 1.005);
     else
-        mask1 = chi < 1.005; 
+        mask_forward = chi < 1.005; 
     end
-    mask2 = ~mask1; % use backward reccurence
+    mask_back = ~mask_forward; % backward reccurence mask
 
     qm = zeros(m+1,size(t,2),size(t,3));
     qmd = zeros(m+1,size(t,2),size(t,3));
     qmdd = zeros(m+1,size(t,2),size(t,3));
     
     % run the forward reccurence
-    if (sum(mask1,'all') ~= 0)
-        [qm(:,mask1),qmd(:,mask1),qmdd(:,mask1)] = forward_reccurence(t(mask1),m);
+    if (sum(mask_forward,'all') ~= 0)
+        [qm(:,mask_forward),qmd(:,mask_forward),qmdd(:,mask_forward)] = forward_reccurence(t(mask_forward),m);
     end
 
     % run the backward reccurence
-    if (sum(mask2,'all') ~= 0)
-        [qm(:,mask2),qmd(:,mask2),qmdd(:,mask2)] = backward_reccurence(t(mask2),m);
+    if (sum(mask_back,'all') ~= 0)
+        [qm(:,mask_back),qmd(:,mask_back),qmdd(:,mask_back)] = backward_reccurence(t(mask_back),m);
     end
 
 end
@@ -168,9 +167,6 @@ function [qm,qmd,qmdd] = backward_reccurence(t, m)
     % 3. compute error and scale solution
     ratio = q0'./qm(1,:);
     qm = qm.*ratio;
-
-    % NOTE:
-    % combine these loops to speed things up ?
 
     % 4. compute 1st derivatives
     qmd(1,:) = q0d';

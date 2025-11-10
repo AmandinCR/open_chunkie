@@ -37,8 +37,8 @@ opts = [];opts.l2scale = false;opts.rcip = true;
 opts.nsub_or_tol = 30;
 start = tic;
 
-%K.sing = 'hs';
-opts.sing = 'hs';
+K.sing = 'hs';
+%opts.sing = 'hs';
 
 A = chunkermat(chnkr, K, opts) + eye(nsys);
 t1 = toc(start);
@@ -55,7 +55,8 @@ opts.verb = false;
 opts.quadkgparams = {'RelTol', 1e-12, 'AbsTol', 1.0e-12};
 
 ntarg = 100;
-targets = rand(2,ntarg);targets(2,:)=targets(2,:)+0.5;
+%targets = rand(2,ntarg);targets(2,:)=targets(2,:)+0.5;
+targets = rand(2,ntarg);targets(2,:)=targets(2,:)*0;targets(1,:)=targets(1,:)+2;
 start = tic;
 unum = chunkerkerneval(chnkr, Keval, sol, targets, opts);
 t2 = toc(start);

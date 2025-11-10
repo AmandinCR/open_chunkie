@@ -2,14 +2,13 @@
 - 3D Laplace's equation
 - Neumann boundary condition
 - Torus boundary
-- Double layer potential representation
+- Single and Double layer potential representation
 - mth mode (non-axisymmetric B.C.)
 %}
 
 clearvars; 
 close all;
 format long e;
-clc;
 
 %% geometry
 % target is where we evaluate the solution
@@ -22,7 +21,7 @@ n_src = chnkr.n(:,:); % normals of all the points on the generating curve
 % plot geometry
 %plot(chnkr);
 
-p_modes = 10; % number of positive fourier modes
+p_modes = 5; % number of positive fourier modes
 n_modes = 2*p_modes + 1; % number of fourier modes (must be odd for pos/0/neg)
 n_angles = n_modes; % number of angles/rotations
 strength = 1.0;
@@ -46,9 +45,9 @@ for i=1:n_angles
     n_pts = [n_x;n_y;n_z];
 
     % set up neumann boundary data (with both charges)
-    rvec1 = pts - charge1;                  % [2,N]
-    r3_1 = vecnorm(rvec1).^3;               % [1,N]
-    fn1 = sum(rvec1 .* n_pts, 1) ./ (4*pi*r3_1);  % [1,N]
+    rvec1 = pts - charge1;
+    r3_1 = vecnorm(rvec1).^3;
+    fn1 = sum(rvec1 .* n_pts, 1) ./ (4*pi*r3_1);
 
     rvec2 = pts - charge2;
     r3_2 = vecnorm(rvec2).^3;
@@ -68,40 +67,51 @@ opts = [];
 opts.rcip = false;
 opts.forcesmooth = false;
 opts.l2scale = false;
-opts.sing = 'hs';
 
-% kern_all_modes returns both negative and positive modes
-sigma_m = zeros(n_modes,npts);
+sigma1_m = zeros(n_modes,npts); % single layer density
+sigma2_m = zeros(n_modes,npts); % double layer density
+origin = [0,0];
 for i=1:n_modes
-    G = @(s,t) kern_mth_mode(s,t,[0,0],'dprime',abs(modes(i))+1);
+    m = abs(modes(i))+1;
+    Sp = kernel('axissymlap','sprime',m);
+    Dp = kernel('axissymlap','dprime',m);
 
     % Build the system matrix
-    A_m = chunkermat_normal(chnkr, G, opts);
+    Sp_m = chunkermat_normal(chnkr, Sp, opts) - 0.5*eye(npts);
+    Dp_m = chunkermat_normal(chnkr, Dp, opts);
 
     % Enforce zero-mean constraint for compatability condition
-    A_m = A_m + onesmat(chnkr);
+    Sp_m = Sp_m + onesmat(chnkr);
+    Dp_m = Dp_m + onesmat(chnkr);
 
     % Solve the linear system
-    sigma_m(i,:) = gmres(A_m, f_m(i,:)', [], 1e-12, npts);
+    rhs = f_m(i,:)';
+    sigma1_m(i,:) = gmres(Sp_m, rhs, [], 1e-12, npts);
+    sigma2_m(i,:) = gmres(Dp_m, rhs, [], 1e-12, npts);
 end
 
 %% solution building
-opts.forcesmooth = false;
 opts.verb = false;
 opts.quadkgparams = {'RelTol', 1e-10, 'AbsTol', 1.0e-10};
-opts.sing = 'smooth';
 
 % target in cylindrical coordinates (r,theta,z)
 target_cyl = [sqrt(target(1)^2 + target(2)^2);atan2(target(2),target(1));target(3)];
 target_new = [target_cyl(1);target_cyl(3)];
 
-u_sol = 0;
+u1_sol = 0; % single layer solution
+u2_sol = 0; % double layer solution
 for i=1:n_modes
-    G = @(s,t) kern_mth_mode(s,t,[0,0],'d',abs(modes(i))+1);
-    G_eval = kernel(G);
+    m = abs(modes(i))+1;
+    S = kernel('axissymlap','s',m);
+    D = kernel('axissymlap','d',m);
     
-    u_m = chunkerkerneval(chnkr, G_eval, sigma_m(i,:), target_new, opts);
-    u_sol = u_sol + real(u_m * exp(1i * modes(i) * target_cyl(2)));
+    % evaluation of operators
+    u1_m = chunkerkerneval(chnkr, S, sigma1_m(i,:), target_new, opts);
+    u2_m = chunkerkerneval(chnkr, D, sigma2_m(i,:), target_new, opts);
+
+    % fourier composition
+    u1_sol = u1_sol + real(u1_m * exp(1i * modes(i) * target_cyl(2)));
+    u2_sol = u2_sol + real(u2_m * exp(1i * modes(i) * target_cyl(2)));
 end
 
 % compute the exact solution explicitly
@@ -110,8 +120,9 @@ r1 = norm(target - charge1);
 r2 = norm(target - charge2);
 u_true = strength*1.0/(4*pi)*(1/r1 - 1/r2);
 
-% compute the error
-err = norm(u_sol-u_true)
+% compute the error of 1st/2nd kind integral equation
+err1 = norm(u1_sol-u_true)
+err2 = norm(u2_sol-u_true)
 
 
 
