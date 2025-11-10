@@ -91,32 +91,4 @@ if strcmpi(type, 'dprime')
         + hess(:,:,4).*nxs.*nyt + hess(:,:,2).*nyt.*nys);
 end
 
-if strcmpi(type, 'sgradr')
-    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
-    submat = grad(:,:,1);
-end
-
-if strcmpi(type, 'sgradz')
-    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m);
-    submat = grad(:,:,3);
-end
-
-if strcmpi(type, 'dgradr')
-    % complex step differentiation of D
-    h = 1e-200;
-    targ_cr = targinfo;
-    targ_cr.r(1,:) = targ_cr.r(1,:) + 1i*h;
-    D_cr = chnk.axissymlap2d.kern_modal(srcinfo, targ_cr, origin, 'd', m);
-    submat = imag(D_cr)/h;
-end
-
-if strcmpi(type, 'dgradz')
-    % complex step differentiation of D
-    h = 1e-200;
-    targ_cz = targinfo;
-    targ_cz.r(2,:) = targ_cz.r(2,:) + 1i*h;
-    D_cz = chnk.axissymlap2d.kern_modal(srcinfo, targ_cz, origin, 'd', m);
-    submat = imag(D_cz)/h;
-end
-
 end
