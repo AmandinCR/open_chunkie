@@ -13,10 +13,10 @@ format long e;
 %% geometry
 % target is where we evaluate the solution
 [chnkr,target,charge1,charge2] = get_torus_geometry();
-npts = chnkr.npt; % total number of points in discretization
 
-src = chnkr.r(:,:); % coordinates of points on the generating curve
-n_src = chnkr.n(:,:); % normals of all the points on the generating curve
+npts = chnkr.npt; % total number of points in discretization
+src = chnkr.r(:,:); % generating curve
+n_src = chnkr.n(:,:); % normals
 
 % plot geometry
 %plot(chnkr);
@@ -25,7 +25,6 @@ p_modes = 5; % number of positive fourier modes
 n_modes = 2*p_modes + 1; % number of fourier modes (must be odd for pos/0/neg)
 n_angles = n_modes; % number of angles/rotations
 strength = 1.0;
-
 
 %% discretization
 % compute f (boundary condition)
