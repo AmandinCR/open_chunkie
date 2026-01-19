@@ -67,18 +67,25 @@ opts.rcip = false;
 opts.forcesmooth = false;
 opts.l2scale = false;
 
-sigma1_m = zeros(n_modes,npts); % single layer density
-sigma2_m = zeros(n_modes,npts); % double layer density
+sigma1_m_xd = zeros(n_modes,npts); % single layer density
+sigma2_m_xd = zeros(n_modes,npts); % double layer density
 origin = [0,0];
-all_modes = false;
-for i=1:n_modes
-    m = abs(modes(i))+1;
-    Sp = kernel('axissymlap','sprime',m,all_modes);
-    Dp = kernel('axissymlap','dprime',m,all_modes);
+all_modes = true;
 
-    % Build the system matrix
-    Sp_m = chunkermat_normal(chnkr, Sp, opts) - 0.5*eye(npts);
-    Dp_m = chunkermat_normal(chnkr, Dp, opts);
+% define kernels
+m = abs(modes(i))+1;
+Sp = kernel('axissymlap','sprime',m,all_modes);
+Dp = kernel('axissymlap','dprime',m,all_modes);
+
+% Build the system matrix
+Spmat = chunkermat_normal(chnkr, Sp, opts);
+Dpmat = chunkermat_normal(chnkr, Dp, opts);
+
+Spmat = reshape(Spmat, [m,npts,npts]);
+Dpmat = reshape(Dpmat, [m,npts,npts]);
+for i=1:n_modes
+    Sp_m = squeeze(Spmat(abs(modes(i))+1,:,:)) - 0.5*eye(npts);
+    Dp_m = squeeze(Dpmat(abs(modes(i))+1,:,:));
 
     % Enforce zero-mean constraint for compatability condition
     Sp_m = Sp_m + onesmat(chnkr);
@@ -86,8 +93,8 @@ for i=1:n_modes
 
     % Solve the linear system
     rhs = f_m(i,:)';
-    sigma1_m(i,:) = gmres(Sp_m, rhs, [], 1e-12, npts);
-    sigma2_m(i,:) = gmres(Dp_m, rhs, [], 1e-12, npts);
+    sigma1_m_xd(i,:) = gmres(Sp_m, rhs, [], 1e-12, npts);
+    sigma2_m_xd(i,:) = gmres(Dp_m, rhs, [], 1e-12, npts);
 end
 
 %% solution building
@@ -100,14 +107,15 @@ target_new = [target_cyl(1);target_cyl(3)];
 
 u1_sol = 0; % single layer solution
 u2_sol = 0; % double layer solution
+all_modes = false;
 for i=1:n_modes
     m = abs(modes(i))+1;
     S = kernel('axissymlap','s',m,all_modes);
     D = kernel('axissymlap','d',m,all_modes);
     
     % evaluation of operators
-    u1_m = chunkerkerneval(chnkr, S, sigma1_m(i,:), target_new, opts);
-    u2_m = chunkerkerneval(chnkr, D, sigma2_m(i,:), target_new, opts);
+    u1_m = chunkerkerneval(chnkr, S, sigma1_m_xd(i,:), target_new, opts);
+    u2_m = chunkerkerneval(chnkr, D, sigma2_m_xd(i,:), target_new, opts);
 
     % fourier composition
     u1_sol = u1_sol + real(u1_m * exp(1i * modes(i) * target_cyl(2)));

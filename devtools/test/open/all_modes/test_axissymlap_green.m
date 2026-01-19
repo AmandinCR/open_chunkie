@@ -14,7 +14,7 @@ format long e;
 
 %% geometry
 [chnkr] = get_torus_geometry();
-charge = [0.0;0.0;-2.0]; % source (axisymm data)
+charge = [1.0;0.0;-2.0]; % source (axisymm data)
 
 npts = chnkr.npt; % total number of points in discretization
 src = chnkr.r(:,:); % generating curve
