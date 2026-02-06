@@ -44,7 +44,6 @@ gdzzs = gdzzs(idx{:});
 gdrzs = gdrzs(idx{:});
 gdrpzs = gdrpzs(idx{:});
 
-
 const = 1/(4*pi^2);
 
 if all_modes == true

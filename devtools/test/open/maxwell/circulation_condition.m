@@ -1,0 +1,240 @@
+%{
+Solve magnetostatics on annulus with circulation condition.
+%}
+
+clearvars; 
+close all;
+format long e;
+
+%% geometry
+% target is where we evaluate the solution
+[chnkr,target,~,~] = get_torus_geometry();
+npts = chnkr.npt; % total number of points in discretization
+
+% plot geometry
+plot(chnkr);
+
+origin = [0;0];
+
+p_modes = 0; % number of positive fourier modes
+n_modes = 2*p_modes + 1; % number of fourier modes (must be odd for pos/0/neg)
+n_angles = n_modes; % number of angles/rotations
+modes = -p_modes:p_modes;
+
+%% incoming field
+% compute boundary condition
+% Choose an exterior loop that does not intersect the torus.
+rinc = 6.0;
+zinc = 0.0;
+
+% Boundary points in (r,z) on generating curve
+targ_rz = chnkr.r(:,:);
+nr = chnkr.n(1,:).';
+nz = chnkr.n(2,:).';
+
+% Incident field H_inc = (1/mu) curl A (use mu=1 with our convention)
+[Hinc_r, Hinc_z] = curlA_ring_modal(targ_rz, origin, rinc, zinc, 1);
+
+% g = - n · H_inc  (this is the PEC scattered Neumann data)
+g_inc = -(nr.*Hinc_r + nz.*Hinc_z);     % npts x 1
+
+% replicate across theta samples (axisymmetric => independent of theta)
+f = repmat(g_inc.', n_angles, 1);       % n_angles x npts
+
+%% global circulation condition
+% Choose interior loop L (centerline ring is natural for your torus)
+rloop = 3.0;
+zloop = 0.0;
+alpha = 1.0;         % your desired circulation coefficient
+
+% Compute (1/mu) * curl(A) on the boundary (axisymmetric, so mu cancels)
+targ_rz = chnkr.r;  % 2 x npts, (r,z) points on generating curve
+
+% IMPORTANT: call with mu=1 so output is effectively (1/mu)*curl(A)
+[Hloop_r, Hloop_z] = curlA_ring_modal(targ_rz, origin, rloop, zloop, 1);
+
+% n · H_loop  on boundary
+Hloop_n = (nr.*Hloop_r + nz.*Hloop_z);      
+
+%% compute fourier transform
+% Reorder FFT output to match
+f_fft = fft(f, n_modes, 1) / n_angles; % FFT (normalized)
+f_m = fftshift(f_fft, 1);  % puts negative freqs first
+
+% --- subtract alpha * n·( (1/mu) curl A ) from the *zero* Fourier mode ---
+idx0 = find(modes == 0);
+rhs = f_m(idx0,:).' + alpha * Hloop_n;   % row vector
+
+%% solve
+% solve the integral equation for each fourier mode
+opts = [];
+opts.rcip = false;
+opts.forcesmooth = false;
+opts.l2scale = false;
+
+sigma_m = zeros(n_modes,npts); % single layer density
+origin = [0,0];
+all_modes = false;
+
+for i=1:n_modes
+    m = abs(modes(i))+1;
+    Sp = kernel('axissymlap','sprime',m,all_modes);
+
+    % Build the system matrix
+    Sp_m = chunkermat_normal(chnkr, Sp, opts) - 0.5*eye(npts);
+
+    % Enforce zero-mean constraint for compatability condition
+    Sp_m = Sp_m + onesmat(chnkr);
+
+    % Solve the linear system
+    sigma_m(i,:) = gmres(Sp_m, rhs, [], 1e-12, npts);
+end
+
+%% solution building
+Phi = flux_through_hole_disk(chnkr, sigma_m, origin, rinc, zinc, 1.0, rloop, zloop);
+
+% target in cylindrical coordinates (r,theta,z)
+target_cyl = [sqrt(target(1)^2 + target(2)^2);atan2(target(2),target(1));target(3)];
+target_new = [target_cyl(1);target_cyl(3)];
+
+u1_sol = 0; % single layer solution
+u2_sol = 0; % double layer solution
+for i=1:n_modes
+    m = abs(modes(i))+1;
+    S = kernel('axissymlap','s',m,all_modes);
+    
+    % evaluation of operators
+    u1_m = chunkerkerneval(chnkr, S, sigma_m(i,:), target_new, opts);
+
+    % fourier composition
+    u1_sol = u1_sol + real(u1_m * exp(1i * modes(i) * target_cyl(2)));
+end
+
+
+
+
+%% gemotry functions
+function [chnkobj,target,charge1,charge2] = get_torus_geometry()
+    pref = [];
+    pref.k = 16; % points per chunk
+    %pref.nchmax = 2;
+
+    cparams = [];
+    %cparams.eps = 1.0e-10;
+    %cparams.nover = 1;
+    cparams.ifclosed = true;
+    cparams.ta = 0;
+    cparams.tb = 2*pi;
+    cparams.maxchunklen = 2;
+    %cparams.nchmin = 8;
+
+    ctr = [3 0];
+    narms = 0;
+    amp = 0.25;
+
+    chnkobj = chunkerfunc(@(t) starfish(t, narms, amp, ctr), cparams, pref); 
+    chnkobj = sort(chnkobj);
+
+    target = [3;0.0;-0.7];
+    charge1 = [1.0;0.0;3.0];
+    charge2 = [1.0;0.0;-3.0];
+end
+
+
+%% helper functions
+
+function [curlA_r, curlA_z, Aphi, dAphidr, dAphidz] = curlA_ring_modal(targ_rz, origin, r0, z0, mu)
+% curlA_ring_modal
+% Compute curl(A[L]) for a unit-current circular loop L located at (r0,z0)
+% using chnk.axissymlap2d.green_modal (your modal Laplace Green evaluator).
+%
+% INPUTS:
+%   targ_rz : 2 x Nt array of target points in (r,z) coordinates (same convention as kern_modal)
+%   origin  : [origin_r; origin_z] used by your code (note: your green_modal only uses origin(1) to shift r)
+%   r0,z0   : meridian location of the loop (generating point of the ring)
+%   mu      : permeability (set mu=1 if you want)
+%
+% OUTPUTS (axisymmetric cylindrical components):
+%   curlA_r, curlA_z : Nt x 1 arrays giving (∇×A)_r and (∇×A)_z
+%   Aphi             : Nt x 1 azimuthal component A_phi
+%   dAphidr, dAphidz : Nt x 1 derivatives of A_phi wrt target r and z
+
+    if nargin < 5 || isempty(mu)
+        mu = 1;
+    end
+
+    % One source: the ring is generated by the point (r0,z0)
+    src_rz = [r0; z0];
+
+    % IMPORTANT: your green_modal expects MATLAB-indexed "m"
+    % where mode n corresponds to m = n+1. So n=1 => m=2.
+    m = 2;
+
+    % Evaluate mode-1 scalar modal Green and its target derivatives
+    [val, grad] = chnk.axissymlap2d.green_modal(src_rz, targ_rz, origin, m, false);
+
+    % val is Nt x 1 (since ns=1). grad is Nt x 1 x 4 with:
+    % grad(:,:,1)=d_r, grad(:,:,2)=d_{r'}, grad(:,:,3)=d_z, grad(:,:,4)=d_{z'}
+    val  = val(:,1);
+    dr   = grad(:,1,1);
+    dz   = grad(:,1,3);
+
+    % With your scaling: A_phi = mu * Re(val_mode1)
+    Aphi    = mu * real(val);
+    dAphidr = mu * real(dr);
+    dAphidz = mu * real(dz);
+
+    % Need the *physical* cylindrical radius r used in the curl formula
+    r_phys = targ_rz(1,:).' + origin(1);
+
+    % Safety if any targets hit the axis (usually not for a torus)
+    r_phys = max(r_phys, 1e-15);
+
+    % Curl in cylindrical coords for axisymmetric A = A_phi e_phi
+    curlA_r = -dAphidz;
+    curlA_z = (Aphi ./ r_phys) + dAphidr;
+end
+
+
+function Phi = flux_through_hole_disk(chnkr, sigma0, origin, rinc, zinc, alpha, rloop, zloop)
+
+    % inner radius estimate from boundary nodes (physical r)
+    rzB = chnkr.r; if ndims(rzB)==3, rzB = reshape(rzB,2,[]); end
+    rB  = rzB(1,:).' + origin(1);
+    r_inner = min(rB);
+    r_cut   = 0.999 * r_inner;
+
+    zc = 0.0;
+    nrad = 600;
+    r = linspace(0, r_cut, nrad).';
+    targ_rz = [r - origin(1); zc*ones(size(r)) - origin(2)];
+
+    % Incident Hz
+    [~, Hinc_z] = curlA_ring_modal(targ_rz, origin, rinc, zinc, 1);
+
+    % grad(S[sigma])_z
+    [~, uz] = eval_gradS_axisym(chnkr, sigma0, targ_rz, origin);
+
+    % loop Hz
+    [~, Hloop_z] = curlA_ring_modal(targ_rz, origin, rloop, zloop, 1);
+
+    Htot_z = Hinc_z + uz + alpha * Hloop_z;
+
+    Phi = 2*pi * trapz(r, Htot_z .* r);
+end
+
+function [ur, uz] = eval_gradS_axisym(chnkr, sigma0, targ_rz, origin)
+    src_rz = chnkr.r;
+    if ndims(src_rz)==3, src_rz = reshape(src_rz,2,[]); end
+    wts = chnkr.wts(:);
+    sigma0 = sigma0(:);
+
+    % mode 0 => m=1
+    [~, grad] = chnk.axissymlap2d.green_modal(src_rz, targ_rz, origin, 1, false);
+
+    dr = squeeze(grad(:,:,1));   % Ntarg x Nsrc
+    dz = squeeze(grad(:,:,3));   % Ntarg x Nsrc
+
+    ur = dr * (sigma0 .* wts);
+    uz = dz * (sigma0 .* wts);
+end

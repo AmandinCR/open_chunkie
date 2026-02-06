@@ -75,7 +75,7 @@ end
 
 if strcmpi(type, 'sprime')
     targnorm = targinfo.n;
-    [~, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m, all_modes);
+    [val, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m, all_modes);
     if all_modes == true
         nx = repmat((targnorm(1,:)).',m,ns);
         ny = repmat((targnorm(2,:)).',m,ns);
