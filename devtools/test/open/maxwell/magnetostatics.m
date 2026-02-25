@@ -81,7 +81,7 @@ Hr = -dAz;                   % H_r = -d/dz Atheta
 Hz = dAr + Atheta./r;        % H_z = d/dr Atheta + Atheta/r
 
 % n*H^inc on the surface (independent of azimuth angle for this symmetric ring)
-g0 = -n_src(1,:)'.*Hr + n_src(2,:)'.*Hz;   % npts x 1
+g0 = -(n_src(1,:)'.*Hr + n_src(2,:)'.*Hz);   % npts x 1
 
 % should be concentrated in the 0th Fourier mode
 %fprintf('max |g_m| per mode: \n');
