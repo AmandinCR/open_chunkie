@@ -204,7 +204,7 @@ m0 = 1;
 Sp0 = kernel('axissymlap','sprime',m0,all_modes);
 
 A0 = chunkermat_normal(chnkr, Sp0, opts) - 0.5*eye(npts);
-A0 = A0 + onesmat(chnkr);
+%A0 = A0 + onesmat(chnkr);
 
 %% Assemble and solve the block system
 % g0: your boundary data for mode 0 (npts x 1)
