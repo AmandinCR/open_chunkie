@@ -282,7 +282,7 @@ function [chnkobj] = get_torus_geometry()
     cparams.ta = 0;
     cparams.tb = 2*pi;
     cparams.maxchunklen = 2;
-    cparams.nchmin = 8;
+    cparams.nchmin = 16;
 
     ctr = [3 0];
     narms = 0;
@@ -305,7 +305,7 @@ function chnkA = get_disk_curve(Rin, eps0)
     cparams = [];
     cparams.ta = 0;
     cparams.tb = 1;
-    cparams.nchmin = 8;        % increase if you want more radial resolution
+    cparams.nchmin = 16;        % increase if you want more radial resolution
 
     % chunkgraph expects verts as 2 x nv
     verts = [a b; 0 0];        % two vertices: (a,0) and (b,0)
