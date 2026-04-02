@@ -19,7 +19,7 @@ src = chnkr.r(:,:); % coordinates of points on the generating curve
 n_src = chnkr.n(:,:); % normals of all the points on the generating curve
 
 % plot geometry
-%plot(chnkr, 'b.');
+plot(chnkr, 'b.');
 strength = 1.0;
 
 % compute f (boundary condition)
@@ -109,8 +109,10 @@ function [chnkobj,target,charge1,charge2] = get_torus_geometry()
     ctr = [3 0];
     narms = 0;
     amp = 0.25;
+    %amp = 1;
 
-    chnkobj = chunkerfunc(@(t) starfish(t, narms, amp, ctr), cparams, pref); 
+    %chnkobj = chunkerfunc(@(t) starfish(t, narms, amp, ctr), cparams, pref); 
+    chnkobj = chunkerfunc(@(t) ellipse2(t, 1,2,3,0), cparams, pref); 
     chnkobj = sort(chnkobj);
 
     target = [3;0.0;-0.7];

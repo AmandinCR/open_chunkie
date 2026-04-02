@@ -36,16 +36,19 @@ format long e;
 
 %% geometry
 [chnkr] = get_torus_geometry();
-%plot(chnkr);
+plot(chnkr,'b-x')
+axis equal
 
 npts  = chnkr.npt;
 src   = chnkr.r(:,:);      % generating curve points [r; z]
 n_src = chnkr.n(:,:);      % generating curve normals [nr; nz]
 wsrc  = chnkr.wts(:);      % ds weights on generating curve
-Rin = 1.75; %Rin = min(src(1,:));
-R0 = 3.3; %R0 = mean(src(1,:));
+
+[Rin, minIdx] = min(src(1,:)); % radius of inner disk
+R0 = mean(src(1,:)); % radius of true solution ring
+Ralpha = 3.3;        % radius of augmented solution ring
+zin = src(2,minIdx);
 z0 = 0.2;
-Ralpha = 2.5;
 zalpha = -0.1;
 
 origin = [0,0];
@@ -54,9 +57,7 @@ m0 = 1;
 mA = 2;
 
 %% ============================================================
-% Manufactured Htrue EXACTLY like sphere case:
-% Htrue = grad(phi_true),  phi_true = G0(srcQ1) - G0(srcQ2)
-% (two mode-0 ring sources of opposite strength)
+% g = boundary condition on the torus of Htrue
 % ============================================================
 
 % Targets are the generating curve points (r,z)
@@ -69,23 +70,23 @@ Atheta = val;           % npts x 1
 dAr    = grad(:,1,1);        % d/dr Atheta
 dAz    = grad(:,1,3);        % d/dz Atheta
 
-r = targ(1,:).';             % npts x 1
+r = src(1,:).';             % npts x 1
 Hr = -dAz;                   % H_r = -d/dz Atheta
 Hz = dAr + Atheta./r;        % H_z = d/dr Atheta + Atheta/r
 
 % n*H^inc on the surface (independent of azimuth angle for this symmetric ring)
 g0 = -(n_src(1,:)'.*Hr + n_src(2,:)'.*Hz);   % npts x 1
 
-% ompatibility check
+% compatibility check
 wsurf = 2*pi * src(1,:)' .* wsrc;
-fprintf('Compatibility integral int g dS = %.6e\n', wsurf.'*g0);
+fprintf('Compatibility condition: int g dS = %.6e\n', wsurf.'*g0);
 
 %% ============================================================
-% b = flux of Htrue through spanning disk A (direct computation)
+% b = flux of Htrue through spanning disk A
 % ============================================================
 
-% target point on the boundary circle C in meridian coords (r,z)=(Rin,0)
-targC = [Rin; 0.0];
+% target point on the boundary circle C in meridian coords
+targC = [Rin; zin];
 srcL = [R0; z0];
 
 [valC, ~] = chnk.axissymlap2d.green_modal(srcL, targC, origin, mA, all_modes);
@@ -93,45 +94,90 @@ AthetaC = valC(1,1);
 
 b = 2*pi*Rin*AthetaC;
 
-%% q = alpha * n * curl A[L]
+%% ============================================================
+% q = alpha * n * curl A[L]
+% ============================================================
 srcLalpha = [Ralpha; zalpha];
 
 [valL, gradL] = chnk.axissymlap2d.green_modal(srcLalpha, src, origin, mA, all_modes);
 
-AthetaL = valL;          % npts x 1
-dArL    = gradL(:,1,1);  % d/dr A_theta
-dAzL    = gradL(:,1,3);  % d/dz A_theta
+AthetaL = valL;       % npts x 1
+dArL = gradL(:,1,1);  % d/dr A_theta
+dAzL = gradL(:,1,3);  % d/dz A_theta
 
 r = src(1,:).';
 HrL = -dAzL;
 HzL = dArL + AthetaL./r;
 
-q0 = -(n_src(1,:)'.*HrL + n_src(2,:)'.*HzL);   % sign convention: direct field
+q0 = -(n_src(1,:)'.*HrL + n_src(2,:)'.*HzL);
 
 %% ============================================================
-% Robust genus-1 flux row for torus: compute f
+% f = extra flux condition row
 % ============================================================
 w = chnkr.wts(:);
-chnkA = get_disk_curve(Rin, 0.0);   % your existing helper (0..rcap)
+chnkA = get_disk_curve(Rin, zin);
 
 targA = chnkA.r(:,:);         % 2 x nA
 wA    = chnkA.wts(:);         % dr weights
 rA    = targA(1,:).';
-wSurf = 2*pi * (rA .* wA);    % revolved surface weights
+wSurf = 2*pi*(rA .* wA);    % revolved surface weights
 
 % mode-0 Green derivative wrt target z for grad S · n_A (with n_A = +z)
-[~, gradA] = chnk.axissymlap2d.green_modal(src, targA, origin, 1, all_modes);
+[~, gradA] = chnk.axissymlap2d.green_modal(src, targA, origin, m0, all_modes);
 dGdz = gradA(:,:,3);          % nA = +e_z convention
 
 % row action on sigma: integral_A (grad S[sigma] · nA) dA
 % gradA is nA-by-npts, w is source ds weights
 f = wSurf.' * (dGdz .* (w.'));
 
+
+
+% CHECK F WITH TEST SIGMA
+ds = chnkr.wts(:);
+s_nodes = [0; cumsum(ds(1:end-1))];
+L = sum(ds);
+
+phi = 0.1;
+sigma_test = cos(4*pi*s_nodes/L + phi);
+sigma_test = sigma_test / norm(sigma_test);
+
+opts = [];
+Hz = zeros(size(targA,2),1);
+Sp0 = kernel('axissymlap','sprime',m0,all_modes);
+for k = 1:size(targA,2)
+    tinfo = [];
+    tinfo.r = targA(:,k);
+    tinfo.n = [0;1];
+    Hz(k) = -chunkerkerneval(chnkr, Sp0, sigma_test, tinfo, opts);
+end
+flux_direct = sum(wSurf .* Hz);
+flux_row = f * sigma_test;
+fprintf('test sigma: difference in f = %.3e\n', abs(flux_direct - flux_row));
+%{
+f_basis = zeros(1,npts);
+for j = 1:npts
+    ej = zeros(npts,1);
+    ej(j) = 1;
+    fluxj = 0;
+    for k = 1:size(targA,2)
+        tinfo = [];
+        tinfo.r = targA(:,k);
+        tinfo.n = [0;1];   % n_A = +e_z
+        Hzk = -chunkerkerneval(chnkr, Sp0, ej, tinfo, opts);
+        fluxj = fluxj + wSurf(k) * Hzk;
+    end
+    f_basis(j) = fluxj;
+end
+flux_basis = f_basis * sigma_test;
+fprintf('test sigma: difference in f = %.3e\n', abs(flux_basis - flux_row));
+fprintf('test sigma: difference in f = %.3e\n', abs(flux_direct - flux_basis));
+%f = f_basis;
+%}
 %% --- c = flux of H_L through spanning disk (Stokes) ---
+targC = [Rin; zin];
 [valC_L, ~] = chnk.axissymlap2d.green_modal(srcLalpha, targC, origin, mA, all_modes);
 AthetaC_L = valC_L(1,1);
-c = 2*pi*Rin * AthetaC_L;   % same sign as b
-
+c = 2*pi*Rin*AthetaC_L;   % same sign as b
 
 %% --- Build mode-0 A operator ---
 opts = [];
@@ -153,16 +199,13 @@ sigma0 = sol(1:npts);
 alpha  = sol(end);
 
 bc_res = A0*sigma0 + q0*alpha - g0;
-fprintf('BC residual (block row) = %.6e\n', norm(bc_res,inf));
+fprintf('BC residual = %.6e\n', norm(bc_res,inf));
 
 flux_res = f*sigma0 + c*alpha - b;
-fprintf('Flux residual (extrapolated row) = %.6e\n', flux_res);
-
-fprintf('alpha = %.16e\n', alpha);
+fprintf('Flux residual = %.6e\n', flux_res);
 
 %% ============================================================
-%  Evaluate H and Htrue at an off-surface point (rt,zt)
-%  (meridian components Hr,Hz; optional Cartesian at angle theta)
+%  Evaluate H and Htrue at an off-surface point
 % ============================================================
 
 rt = 1.0;
@@ -182,7 +225,7 @@ Hz_true =  dAr_true + Atheta_true/rt;
 opts_eval = [];
 opts_eval.forcesmooth = false;
 opts_eval.verb = false;
-opts_eval.quadkgparams = {'RelTol',1e-10,'AbsTol',1e-10};
+opts_eval.quadkgparams = {'RelTol',1e-16,'AbsTol',1e-16};
 opts_eval.sing = 'log';
 
 Sp0 = kernel('axissymlap','sprime',m0,all_modes);
@@ -229,7 +272,7 @@ function [chnkobj] = get_torus_geometry()
     %pref.nchmax = 2;
 
     cparams = [];
-    %cparams.eps = 1.0e-10;
+    %cparams.eps = 1.0e-14;
     %cparams.nover = 1;
     cparams.ifclosed = true;
     cparams.ta = 0;
@@ -237,36 +280,52 @@ function [chnkobj] = get_torus_geometry()
     cparams.maxchunklen = 2;
     cparams.nchmin = 8;
 
-    ctr = [3 0];
-    narms = 0;
-    amp = 0.25;
+    %ctr = [3 0];
+    %narms = 0;
+    %amp = 0.25;
+    %chnkobj = chunkerfunc(@(t) starfish(t, narms, amp, ctr), cparams, pref);
+    chnkobj = chunkerfunc(@(t) ellipse2(t, 1,2,3,0), cparams, pref); 
 
-    chnkobj = chunkerfunc(@(t) starfish(t, narms, amp, ctr), cparams, pref); 
-    chnkobj = sort(chnkobj);
+    %beta = 0.99;
+    %chnkobj = chunkerfunc(@(u) ellipse2_clustered(u,1,2,3,0,beta), cparams, pref);
+    
+    %chnkobj = sort(chnkobj);
 end
 
-function chnkA = get_disk_curve(Rin, eps0)
-    if nargin < 2
-        eps0 = 0.0;
-    end
-    a = max(eps0, 0.0);
-    b = Rin;
-
+function chnkA = get_disk_curve(Rin, zin)
     pref = [];
     pref.k = 16;               % order per chunk (match your torus pref if you want)
-
+ 
     cparams = [];
     cparams.ta = 0;
     cparams.tb = 1;
-    cparams.nchmin = 8;        % increase if you want more radial resolution
+    cparams.nchmin = 4;
 
     % chunkgraph expects verts as 2 x nv
-    verts = [a b; 0 0];        % two vertices: (a,0) and (b,0)
+    verts = [0.0 Rin; zin zin];        % two vertices: (a,0) and (b,0)
     edge2verts = [1; 2];
     fchnks = [];
 
     chnkA = chunkgraph(verts, edge2verts, fchnks, cparams, pref);
-    chnkA = balance(chnkA);
+    %chnkA = balance(chnkA);
 end
 
+function [r, d, d2] = ellipse2_clustered(u,a,b,c,dcen,beta)
+    % smooth periodic map clustering near t = pi
+    t   = u - beta*sin(u - pi);
+    tp  = 1 - beta*cos(u - pi);
+    tpp = beta*sin(u - pi);
 
+    % force row vectors so sizes match ellipse2 output (2 x N)
+    t = t(:).';
+    tp = tp(:).';
+    tpp = tpp(:).';
+
+    % original ellipse evaluated at t
+    [r0, d0t, d20t] = ellipse2(t, a, b, c, dcen);
+
+    % chain rule
+    r  = r0;
+    d  = d0t .* repmat(tp,  2, 1);
+    d2 = d20t .* repmat(tp.^2, 2, 1) + d0t .* repmat(tpp, 2, 1);
+end
