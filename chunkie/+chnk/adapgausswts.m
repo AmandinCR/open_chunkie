@@ -40,7 +40,10 @@ function [mat,maxrecs,numints,iers] = adapgausswts(r,d,n,d2,data,ct,bw,j,...
 eps = 1e-12;
 nnmax=100000;
 maxdepth=52; % since double-precision only has 52-bits of precision
-transinv = true;
+
+%transinv = true;
+
+transinv = false;
 
 if nargin < 18
     opts = [];

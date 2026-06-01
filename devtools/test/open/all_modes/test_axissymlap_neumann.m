@@ -6,8 +6,8 @@
 - mth mode (non-axisymmetric B.C.)
 %}
 
-%clearvars; 
-%close all;
+clearvars; 
+close all;
 format long e;
 
 %% geometry

@@ -107,4 +107,24 @@ if strcmpi(type, 'dprime')
         + hess(:,:,4).*nxs.*nyt + hess(:,:,2).*nyt.*nys);
 end
 
+if strcmpi(type, 'scurl')
+    % doesn't work for all_modes = true
+    targnorm = targinfo.n;
+    [val, grad] = chnk.axissymlap2d.green_modal(src, targ, origin, m, all_modes);
+
+    nr = repmat((targnorm(1,:)).',1,ns);
+    nz = repmat((targnorm(2,:)).',1,ns);
+    rt = repmat((targ(1,:)).',1,ns);   % target r-coordinate
+
+    % target derivatives of modal Green's function
+    dGdr = grad(:,:,1);
+    dGdz = grad(:,:,3);
+
+    % n · curl(G e_theta)
+    %
+    % = -nr * dGdz + nz * (dGdr + G/r)
+    submat = nr.*dGdz - nz.*(dGdr + val./rt);
+    return
+end
+
 end

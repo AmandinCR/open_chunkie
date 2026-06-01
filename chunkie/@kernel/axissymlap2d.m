@@ -39,6 +39,13 @@ switch lower(type)
         obj.fmm = [];
         obj.sing = 'hs';
 
+    case {'sc', 'scurl'}
+        obj.type = 'sc';
+        obj.eval = @(s,t) chnk.axissymlap2d.kern_modal(s, t, [0,0], 'scurl',m, all_modes);
+        obj.shifted_eval = @(s,t,o) chnk.axissymlap2d.kern_modal(s, t, o, 'scurl',m, all_modes);
+        obj.fmm = [];
+        obj.sing = 'pv';
+
     otherwise
         error('Unknown axissym Laplace kernel type ''%s''.', type);
 
